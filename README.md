@@ -1,6 +1,6 @@
 # LitSnap
 
-A web reader for EPUB and PDF files. Highlight an unfamiliar word or phrase — like *"hipped roof"* — and see its definition and pictures in an overlay, without leaving the book.
+A web reader for EPUB and PDF files. Highlight an unfamiliar word or phrase — like _"hipped roof"_ — and see its definition and pictures in an overlay, without leaving the book.
 
 Your books never leave your device: files, reading progress and lookup history are stored only in your browser.
 

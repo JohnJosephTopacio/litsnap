@@ -12,7 +12,16 @@ pnpm monorepo — `apps/web` (React + Vite + TypeScript, foliate-js, pdf.js, Ind
 
 ## Commands
 
-_To be filled in once M0 scaffolding lands._
+Run from the repo root:
+
+- `pnpm install` — install everything
+- `pnpm dev` — web (Vite) and worker (`wrangler dev`) in parallel
+- `pnpm check` — what CI runs: format check, lint, typecheck, tests. Run before every push.
+- `pnpm test` / `pnpm typecheck` / `pnpm lint` / `pnpm format` — individually
+- `pnpm --filter @litsnap/web <script>` / `pnpm --filter @litsnap/worker <script>` — one package
+- `pnpm --filter @litsnap/worker typegen` — regenerate `worker-configuration.d.ts` after changing `wrangler.jsonc` (commit the result)
+
+Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vitest-plugin` (not the deprecated `vitest-pool-workers`). TypeScript is pinned to 6.0 until `typescript-eslint` supports 7. Packages with install scripts must be allow-listed under `allowBuilds` in `pnpm-workspace.yaml`.
 
 ## How we work
 
