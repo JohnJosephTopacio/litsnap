@@ -4,7 +4,7 @@
 
 ## 1. Problem
 
-When reading a novel or document, readers hit unfamiliar words — especially physical descriptions like *"hipped roof"* or *"flying buttress"*. Looking them up means leaving the book, opening a browser tab, and searching for definitions and images. That breaks immersion.
+When reading a novel or document, readers hit unfamiliar words — especially physical descriptions like _"hipped roof"_ or _"flying buttress"_. Looking them up means leaving the book, opening a browser tab, and searching for definitions and images. That breaks immersion.
 
 ## 2. Product
 
@@ -16,18 +16,19 @@ LitSnap is a web-based reader for EPUB and PDF files. The reader highlights a wo
 
 ## 3. Supported files
 
-| Input | v1 behaviour |
-|---|---|
-| EPUB (DRM-free) | Fully supported |
-| PDF with a text layer | Supported |
-| Scanned PDF (no text layer) | Opens, shows: *"This PDF has no selectable text, so lookups aren't available."* No OCR. |
-| DRM-protected EPUB/PDF | Rejected with: *"This book is DRM-protected and can't be opened."* plus links to DRM-free sources (Project Gutenberg, Standard Ebooks). |
+| Input                       | v1 behaviour                                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| EPUB (DRM-free)             | Fully supported                                                                                                                         |
+| PDF with a text layer       | Supported                                                                                                                               |
+| Scanned PDF (no text layer) | Opens, shows: _"This PDF has no selectable text, so lookups aren't available."_ No OCR.                                                 |
+| DRM-protected EPUB/PDF      | Rejected with: _"This book is DRM-protected and can't be opened."_ plus links to DRM-free sources (Project Gutenberg, Standard Ebooks). |
 
 LitSnap never contains DRM-circumvention code.
 
 ## 4. Lookup experience
 
 ### 4.1 Selection → menu
+
 - Selecting **1–6 words** shows a small **vertical menu** next to the end of the selection: **Definition**, **Image**, **Both**.
 - The menu flips sides to stay on screen.
 - Selections of 0 or 7+ words show no menu.
@@ -35,29 +36,33 @@ LitSnap never contains DRM-circumvention code.
 - `Esc` or clicking elsewhere dismisses the menu.
 
 ### 4.2 Lookup modal
+
 - Opens **centred**, smaller than the viewport; the page behind is **dimmed**. The selection stays highlighted underneath.
 - Size: **Small / Medium / Large**. Default Medium. Changeable in Settings and via S/M/L buttons in the modal corner; the last choice becomes the new default.
 - Header shows the looked-up term and the **source sentence** it came from.
 - Dismissed by `Esc` or clicking the dimmed backdrop. Focus is trapped inside while open and returns to the reader on close.
 
 ### 4.3 Definition content
+
 - Part of speech, definitions, and source attribution.
 - If no dictionary entry exists, falls back to the Wikipedia article summary (if any).
 
 ### 4.4 Image content
+
 - Grid of up to **6 thumbnails**; click to enlarge within the modal.
 - Every image shows an **attribution line** (author, licence, source link) — required by CC BY-SA.
 - Alt text comes from the image caption/description.
-- If nothing suitable is found: *"No good image found."* — never show a wrong or unrelated image just to fill the space.
+- If nothing suitable is found: _"No good image found."_ — never show a wrong or unrelated image just to fill the space.
 
 ### 4.5 Always available
+
 - A **"Search Google ↗"** link (opens a new tab) as a manual fallback.
 
 ## 5. Lookup chain
 
 1. **Normalise** the selection: trim, strip surrounding punctuation, lowercase, collapse whitespace, treat hyphens as spaces (`"Hipped-Roof,"` → `hipped roof`).
 2. **Dictionary:** Wiktionary (REST API), then dictionaryapi.dev.
-3. **Wikipedia search** (follows redirects, e.g. `hipped roof` → *Hip roof*): article summary and its lead images.
+3. **Wikipedia search** (follows redirects, e.g. `hipped roof` → _Hip roof_): article summary and its lead images.
 4. **Wikimedia Commons** image search when the article gives too few images.
 5. Nothing found → empty states as in §4.3/§4.4, plus the Google link.
 
