@@ -15,6 +15,8 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Open an EPUB (foliate-js), table of contents, remember position, font size, theme, paginated/scrolled.
 - Store books and progress in IndexedDB.
 - DRM detection and message.
+- Content Security Policy that blocks scripts in books, plus Playwright end-to-end tests.
+- Specs: [drm-detection](features/drm-detection.md), [book-storage](features/book-storage.md), [epub-reader](features/epub-reader.md).
 
 ## M2 — Selection menu & lookup modal (mock data)
 
