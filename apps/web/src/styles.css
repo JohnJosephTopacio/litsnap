@@ -15,6 +15,24 @@ footer {
   padding: 1rem;
 }
 
+.drop-zone {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  border: 3px dashed transparent;
+}
+
+.drop-zone.dragging {
+  border-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.hint {
+  opacity: 0.7;
+}
+
+.reader-notice {
+  padding: 0 1rem;
+}
+
 .reader {
   display: flex;
   flex-direction: column;

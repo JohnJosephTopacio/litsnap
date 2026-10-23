@@ -35,6 +35,8 @@ file ─▶ .epub? ─no─▶ "Only EPUB files are supported for now."
 
 A loading state shows from file selection until the first page renders.
 
+If a book is already open and the newly chosen file is rejected (RD-3…5), the open book **stays open** and the message shows above it, so a mis-click doesn't cost the reader their place.
+
 ## Acceptance criteria
 
 Verified with Playwright (Chromium) against `vite preview`, so the production CSP applies. Fixtures are in `apps/web/e2e/fixtures/`.
