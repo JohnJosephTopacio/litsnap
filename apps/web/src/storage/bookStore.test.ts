@@ -3,7 +3,7 @@
 // Blob into a plain object. Node's own Blob round-trips correctly, as real browsers' do.
 //
 // Acceptance criteria STO-1…8 and STO-11…14 from docs/features/book-storage.md.
-// RED PHASE: `it.fails` until the implementation PR, which changes only `it.fails` → `it`.
+// RED PHASE: `it` until the implementation PR, which changes only `it` → `it`.
 import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -47,14 +47,14 @@ afterEach(() => {
 
 describe('bookId', () => {
   describe('STO-1: book id is a content hash', () => {
-    it.fails('is the SHA-256 of the bytes as 64 lowercase hex characters', async () => {
+    it('is the SHA-256 of the bytes as 64 lowercase hex characters', async () => {
       // Standard SHA-256 test vector for "abc".
       expect(await bookId(new Blob(['abc']))).toBe(
         'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
       );
     });
 
-    it.fails('is equal for identical bytes regardless of file name', async () => {
+    it('is equal for identical bytes regardless of file name', async () => {
       const a = new File(['same bytes'], 'a.epub');
       const b = new File(['same bytes'], 'renamed.epub');
 
@@ -65,7 +65,7 @@ describe('bookId', () => {
 
 describe('openBookStore', () => {
   describe('STO-2: save and load a book', () => {
-    it.fails('returns the same metadata and identical bytes', async () => {
+    it('returns the same metadata and identical bytes', async () => {
       const store = await open();
       const saved = await store.saveBook(book());
       const loaded = await store.getBook(saved.id);
@@ -83,14 +83,14 @@ describe('openBookStore', () => {
       expect(loaded?.blob.type).toBe('application/epub+zip');
     });
 
-    it.fails('falls back to the file name when the book has no title', async () => {
+    it('falls back to the file name when the book has no title', async () => {
       const store = await open();
       const saved = await store.saveBook(book('untitled', { title: '  ' }));
 
       expect(saved.title).toBe('flying-buttress.epub');
     });
 
-    it.fails('returns undefined for an unknown id', async () => {
+    it('returns undefined for an unknown id', async () => {
       const store = await open();
 
       expect(await store.getBook('0'.repeat(64))).toBeUndefined();
@@ -98,7 +98,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-3: re-importing the same file keeps progress', () => {
-    it.fails('keeps one book, keeps addedAt, updates lastOpenedAt, keeps progress', async () => {
+    it('keeps one book, keeps addedAt, updates lastOpenedAt, keeps progress', async () => {
       const store = await open();
       const first = await store.saveBook(book());
       await store.saveProgress(first.id, { cfi: 'epubcfi(/6/8!/4/2)', fraction: 0.3 });
@@ -114,7 +114,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-4: storage full', () => {
-    it.fails('throws StorageFullError and leaves no partial book', async () => {
+    it('throws StorageFullError and leaves no partial book', async () => {
       const store = await open();
       // eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound with apply() below
       const realPut = IDBObjectStore.prototype.put;
@@ -134,7 +134,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-5: persistence requested on import', () => {
-    it.fails('calls persist() when storage is not yet persisted', async () => {
+    it('calls persist() when storage is not yet persisted', async () => {
       const storage = fakeStorage(false);
       const store = await open({ storage });
       await store.saveBook(book());
@@ -142,7 +142,7 @@ describe('openBookStore', () => {
       expect(storage.persist).toHaveBeenCalledTimes(1);
     });
 
-    it.fails('does not call persist() when already persisted', async () => {
+    it('does not call persist() when already persisted', async () => {
       const storage = fakeStorage(true);
       const store = await open({ storage });
       await store.saveBook(book());
@@ -150,7 +150,7 @@ describe('openBookStore', () => {
       expect(storage.persist).not.toHaveBeenCalled();
     });
 
-    it.fails('saves normally when the storage API is unavailable', async () => {
+    it('saves normally when the storage API is unavailable', async () => {
       const store = await open({ storage: null });
 
       await expect(store.saveBook(book())).resolves.toMatchObject({ title: 'Flying Buttresses' });
@@ -158,7 +158,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-6: current book round-trip', () => {
-    it.fails('returns the book set last, and keeps the earlier one', async () => {
+    it('returns the book set last, and keeps the earlier one', async () => {
       const store = await open();
       const a = await store.saveBook(book('book A'));
       const b = await store.saveBook(book('book B'));
@@ -172,13 +172,13 @@ describe('openBookStore', () => {
   });
 
   describe('STO-7: current book missing', () => {
-    it.fails('is undefined when nothing was ever set', async () => {
+    it('is undefined when nothing was ever set', async () => {
       const store = await open();
 
       expect(await store.getCurrentBook()).toBeUndefined();
     });
 
-    it.fails('is undefined (not an error) when the current book is no longer stored', async () => {
+    it('is undefined (not an error) when the current book is no longer stored', async () => {
       const store = await open();
       await store.setCurrentBook('f'.repeat(64));
 
@@ -187,7 +187,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-8: save and load progress', () => {
-    it.fails('returns the saved cfi and fraction', async () => {
+    it('returns the saved cfi and fraction', async () => {
       const store = await open();
       const saved = await store.saveBook(book());
 
@@ -202,7 +202,7 @@ describe('openBookStore', () => {
       });
     });
 
-    it.fails('returns undefined for a book with no saved progress', async () => {
+    it('returns undefined for a book with no saved progress', async () => {
       const store = await open();
       const saved = await store.saveBook(book());
 
@@ -211,7 +211,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-11: last write wins', () => {
-    it.fails('keeps the progress written last by two connections', async () => {
+    it('keeps the progress written last by two connections', async () => {
       const name = `test-${crypto.randomUUID()}`;
       const tabA = await openBookStore({ name, now, storage: null });
       const tabB = await openBookStore({ name, now, storage: null });
@@ -225,7 +225,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-12: defaults', () => {
-    it.fails('is 100%, paginated, and follows the OS theme', async () => {
+    it('is 100%, paginated, and follows the OS theme', async () => {
       const store = await open();
 
       expect(await store.getSettings()).toEqual({
@@ -237,7 +237,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-13: font size limits', () => {
-    it.fails.each([
+    it.each([
       [73, 80],
       [80, 80],
       [114, 110],
@@ -253,7 +253,7 @@ describe('openBookStore', () => {
   });
 
   describe('STO-14: settings persist', () => {
-    it.fails('survives closing and reopening the database', async () => {
+    it('survives closing and reopening the database', async () => {
       const name = `test-${crypto.randomUUID()}`;
       const first = await openBookStore({ name, now, storage: null });
       await first.updateSettings({ theme: 'dark' });
@@ -269,7 +269,7 @@ describe('openBookStore', () => {
       });
     });
 
-    it.fails('can go back to following the OS theme', async () => {
+    it('can go back to following the OS theme', async () => {
       const store = await open();
       await store.updateSettings({ theme: 'light' });
       await store.updateSettings({ theme: undefined });
