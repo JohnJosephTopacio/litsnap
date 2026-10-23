@@ -1,7 +1,7 @@
 // User-facing messages for opening and saving books. Wording: docs/features/epub-reader.md.
 import type { FileProblem } from './checkFile';
 
-export type NoticeKind = FileProblem | 'storage-full';
+export type NoticeKind = FileProblem | 'storage-full' | 'reopen-failed';
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
@@ -25,6 +25,8 @@ export function Notice({ kind }: { kind: NoticeKind }) {
           .
         </p>
       );
+    case 'reopen-failed':
+      return <p role="alert">This book couldn&apos;t be reopened. Please open the file again.</p>;
     case 'storage-full':
       // Not an error the user caused: the book is open, it just won't be remembered.
       return <p role="status">Not enough browser storage to save this book.</p>;

@@ -1,16 +1,15 @@
 import type { BookMetadata } from 'foliate-js/view.js';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkFile } from './reader/checkFile';
 import { bookAuthor, bookTitle } from './reader/bookMetadata';
 import { Notice, type NoticeKind } from './reader/Notice';
-import { ReaderView } from './reader/ReaderView';
+import { ReaderScreen, type OpenBook } from './reader/ReaderScreen';
 import { appStore } from './storage/appStore';
-import { StorageFullError } from './storage/bookStore';
+import { bookId, StorageFullError } from './storage/bookStore';
 
-interface OpenBook {
-  file: File;
-  /** From the book's metadata once parsed; untrusted text, rendered as text only (RD-24). */
-  title: string;
+interface AppBook extends OpenBook {
+  /** Reopened from storage at startup, rather than chosen just now. */
+  reopened: boolean;
 }
 
 /** Saves the book and makes it current. Throws StorageFullError if the browser is out of space. */
@@ -25,12 +24,45 @@ async function saveBook(file: File, metadata: BookMetadata | undefined) {
   await store.setCurrentBook(saved.id);
 }
 
+/** RD-8, RD-10: the book that was open last time, at its saved position. */
+async function currentBook(): Promise<AppBook | undefined> {
+  const store = await appStore();
+  const stored = await store.getCurrentBook();
+  if (!stored) return undefined;
+  const progress = await store.getProgress(stored.id);
+  return {
+    id: stored.id,
+    file: new File([stored.blob], stored.fileName, { type: stored.blob.type }),
+    title: stored.title,
+    initialPosition: progress && { cfi: progress.cfi, fraction: progress.fraction },
+    reopened: true,
+  };
+}
+
 export function App() {
-  const [book, setBook] = useState<OpenBook>();
+  const [book, setBook] = useState<AppBook>();
+  const [starting, setStarting] = useState(true);
   const [notice, setNotice] = useState<NoticeKind>();
   const [checking, setChecking] = useState(false);
   const [dragging, setDragging] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const reopened = book?.reopened ?? false;
+
+  // On start, go straight back into the last book without showing the open screen (RD-8).
+  useEffect(() => {
+    let cancelled = false;
+    currentBook()
+      .then((found) => {
+        if (!cancelled && found) setBook(found);
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (!cancelled) setStarting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /** Checks the file before foliate sees it. A rejected file is never stored (RD-3…5). */
   async function openFile(file: File) {
@@ -39,8 +71,20 @@ export function App() {
     try {
       const problem = await checkFile(file);
       // If a book is already open, it stays open and the message shows above it.
-      if (problem) setNotice(problem);
-      else setBook({ file, title: file.name });
+      if (problem) {
+        setNotice(problem);
+        return;
+      }
+      // Re-opening a file LitSnap has seen before resumes where the reader left off (STO-3).
+      const id = await bookId(file);
+      const progress = await (await appStore()).getProgress(id);
+      setBook({
+        id,
+        file,
+        title: file.name,
+        initialPosition: progress && { cfi: progress.cfi, fraction: progress.fraction },
+        reopened: false,
+      });
     } finally {
       setChecking(false);
     }
@@ -59,23 +103,28 @@ export function App() {
     if (file) void openFile(file);
   }
 
-  const onOpen = useCallback((file: File, metadata: BookMetadata | undefined) => {
-    setBook((current) =>
-      current?.file === file
-        ? { ...current, title: bookTitle(metadata) || current.title }
-        : current,
-    );
-    saveBook(file, metadata).catch((error: unknown) => {
-      // The book is open either way; it just won't be remembered (RD-6).
-      if (error instanceof StorageFullError) setNotice('storage-full');
-      else console.error('Saving the book failed', error);
-    });
-  }, []);
+  const onOpen = useCallback(
+    (file: File, metadata: BookMetadata | undefined) => {
+      setBook((current) =>
+        current?.file === file
+          ? { ...current, title: bookTitle(metadata) || current.title }
+          : current,
+      );
+      if (reopened) return; // already stored
+      saveBook(file, metadata).catch((error: unknown) => {
+        // The book is open either way; it just won't be remembered (RD-6).
+        if (error instanceof StorageFullError) setNotice('storage-full');
+        else console.error('Saving the book failed', error);
+      });
+    },
+    [reopened],
+  );
 
   const onError = useCallback(() => {
+    // A stored book that no longer opens gets its own message (RD-11).
+    setNotice(reopened ? 'reopen-failed' : 'invalid');
     setBook(undefined);
-    setNotice('invalid');
-  }, []);
+  }, [reopened]);
 
   const fileInput = (
     <input
@@ -86,21 +135,23 @@ export function App() {
       onChange={onFileChosen}
     />
   );
+  const chooseFile = () => input.current?.click();
   const status = checking ? <p role="status">Opening…</p> : notice && <Notice kind={notice} />;
+
+  if (starting) return <p role="status">Opening…</p>;
 
   if (book) {
     return (
-      <div className="reader">
-        <header className="top-bar">
-          <h1 className="book-title">{book.title}</h1>
-          <button type="button" onClick={() => input.current?.click()}>
-            Open another book
-          </button>
-          {fileInput}
-        </header>
-        {status && <div className="reader-notice">{status}</div>}
-        <ReaderView file={book.file} onOpen={onOpen} onError={onError} />
-      </div>
+      <>
+        <ReaderScreen
+          book={book}
+          status={status}
+          onChooseFile={chooseFile}
+          onOpen={onOpen}
+          onError={onError}
+        />
+        {fileInput}
+      </>
     );
   }
 
@@ -119,7 +170,7 @@ export function App() {
       <main className="open-screen">
         <h1>LitSnap</h1>
         <p>Highlight a word in your book to see its meaning — without leaving the page.</p>
-        <button type="button" onClick={() => input.current?.click()}>
+        <button type="button" onClick={chooseFile}>
           Open a book
         </button>
         {fileInput}
