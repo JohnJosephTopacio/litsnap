@@ -18,6 +18,7 @@ Run from the repo root:
 - `pnpm dev` — web (Vite) and worker (`wrangler dev`) in parallel
 - `pnpm check` — what CI runs: format check, lint, typecheck, tests. Run before every push.
 - `pnpm test` / `pnpm typecheck` / `pnpm lint` / `pnpm format` — individually
+- `pnpm test:e2e` — Playwright against the built app (`vite preview`, production CSP). CI runs it after `pnpm check`. First time: `pnpm --filter @litsnap/web exec playwright install chromium`
 - `pnpm --filter @litsnap/web <script>` / `pnpm --filter @litsnap/worker <script>` — one package
 - `pnpm --filter @litsnap/worker typegen` — regenerate `worker-configuration.d.ts` after changing `wrangler.jsonc` (commit the result)
 
