@@ -43,6 +43,7 @@ Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vite
 
 - Books never leave the browser. The Worker receives only the normalised lookup term.
 - No DRM-circumvention code, ever.
+- Only permissively licensed production dependencies (the allow-list in [terms-page.md](docs/features/terms-page.md), TERMS-6). No GPL/LGPL/AGPL. Never copy code from the Foliate desktop app (GPL-3.0); only the foliate-js library is MIT. The repo is "all rights reserved", so copyleft code can't go in it.
 - Book content is untrusted. foliate-js (or any book rendering) never lands without the CSP and its "scripts in books never run" test (RD-21). Loosening the CSP, especially `script-src`, needs a new decision record. See [decision 0002](docs/decisions/0002-csp-for-book-content.md).
 - Text from a book (title, author, TOC, selections) is rendered as text, never as HTML: no `dangerouslySetInnerHTML`, `innerHTML` or similar.
 - No secrets in the repo. Secrets go in Cloudflare/GitHub encrypted secrets; local ones in `.dev.vars` (gitignored).
