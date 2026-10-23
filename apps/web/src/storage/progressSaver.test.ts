@@ -1,5 +1,4 @@
 // Acceptance criteria STO-9 and STO-10 from docs/features/book-storage.md.
-// RED PHASE: `it` until the implementation PR, which changes only `it` → `it`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Position } from './bookStore';
 import { createProgressSaver } from './progressSaver';

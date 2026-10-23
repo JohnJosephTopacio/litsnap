@@ -3,7 +3,6 @@
 // Blob into a plain object. Node's own Blob round-trips correctly, as real browsers' do.
 //
 // Acceptance criteria STO-1…8 and STO-11…14 from docs/features/book-storage.md.
-// RED PHASE: `it` until the implementation PR, which changes only `it` → `it`.
 import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -124,6 +123,31 @@ describe('openBookStore', () => {
       ) {
         if (this.name === 'books') throw new DOMException('Quota exceeded', 'QuotaExceededError');
         return realPut.apply(this, args);
+      });
+
+      await expect(store.saveBook(book())).rejects.toBeInstanceOf(StorageFullError);
+
+      vi.restoreAllMocks();
+      expect(await store.getBook(await bookId(book().blob))).toBeUndefined();
+    });
+
+    it('also throws StorageFullError when the quota error arrives by aborting the transaction', async () => {
+      // How real browsers usually report it: put() is accepted, then the transaction aborts at
+      // commit time with the reason on `transaction.error`.
+      const store = await open();
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- re-bound with apply() below
+      const realPut = IDBObjectStore.prototype.put;
+      const quota = new DOMException('Quota exceeded', 'QuotaExceededError');
+      vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+        this: IDBObjectStore,
+        ...args: Parameters<IDBObjectStore['put']>
+      ) {
+        const request = realPut.apply(this, args);
+        if (this.name === 'books') {
+          vi.spyOn(this.transaction, 'error', 'get').mockReturnValue(quota);
+          this.transaction.abort();
+        }
+        return request;
       });
 
       await expect(store.saveBook(book())).rejects.toBeInstanceOf(StorageFullError);
