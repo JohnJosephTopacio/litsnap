@@ -9,10 +9,32 @@ export interface ProgressSaver {
   flush(): Promise<void>;
 }
 
-// RED PHASE: stub until the implementation PR.
-export const createProgressSaver: (
+export function createProgressSaver(
   write: (position: Position) => Promise<void>,
-  delayMs?: number,
-) => ProgressSaver = () => {
-  throw new Error('createProgressSaver is not implemented yet');
-};
+  delayMs = 1000,
+): ProgressSaver {
+  let pending: Position | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  async function flush() {
+    clearTimeout(timer);
+    timer = undefined;
+    // Take the pending position before awaiting, so a report() during the write isn't lost
+    // and the same position is never written twice.
+    const position = pending;
+    pending = undefined;
+    if (position) await write(position);
+  }
+
+  return {
+    report(position) {
+      pending = position;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        // The next report() schedules a fresh write, so a failed one isn't fatal.
+        flush().catch(() => undefined);
+      }, delayMs);
+    },
+    flush,
+  };
+}
