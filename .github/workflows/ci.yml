@@ -35,6 +35,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm check:licenses
       - run: pnpm build
 
       # Playwright runs against the built app via `vite preview`, with the production CSP.

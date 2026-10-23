@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
-    "test:e2e": "pnpm --filter @litsnap/web test:e2e"
+    "test:e2e": "pnpm --filter @litsnap/web test:e2e",
+    "check:licenses": "pnpm licenses list --prod --recursive --json | node apps/web/config/check-licenses.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
