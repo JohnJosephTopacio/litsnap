@@ -8,4 +8,13 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'LitSnap' })).toBeInTheDocument();
   });
+
+  it('links to the Terms page in a new tab (TERMS-4)', () => {
+    render(<App />);
+
+    const link = screen.getByRole('link', { name: 'Terms' });
+    expect(link).toHaveAttribute('href', '/terms');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
 });
