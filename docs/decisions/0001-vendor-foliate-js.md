@@ -30,3 +30,5 @@ Vendor it into `apps/web/vendor/foliate-js/`, copied from commit
 - Dependabot won't tell us about foliate-js updates. We update by hand: copy a newer commit and update `VENDORED.md` in its own PR.
 - `apps/web/vendor/` is excluded from ESLint and Prettier (third-party code keeps upstream formatting), but stays in TypeScript's `allowJs` scope as needed.
 - foliate-js bundles its own third-party code (zip.js: BSD-3-Clause, fflate: MIT, PDF.js: Apache-2.0). Their licence notices stay with the vendored files. We won't use foliate's PDF support; PDF arrives in M5 via pdf.js directly.
+- The CI licence check ([terms-page.md](../features/terms-page.md), TERMS-6) reads `node_modules`, so it **can't see vendored code**. Whoever updates the vendored copy checks the licences of everything in it by hand, lists them in `VENDORED.md`, and makes sure they appear in `third-party-licenses.txt` (TERMS-5).
+- **Never copy code from Foliate, the desktop e-reader app by the same author.** It is GPL-3.0, and GPL code would oblige us to release LitSnap's code. Only the separate _foliate-js_ library is MIT.

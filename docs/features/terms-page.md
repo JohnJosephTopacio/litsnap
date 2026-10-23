@@ -33,9 +33,11 @@ The reader goes live as soon as M1 merges, so a Terms of Use page has to go live
 >
 > **6. LitSnap's own code.** LitSnap's source code is public for reading, but all rights are reserved. Using LitSnap doesn't give you a licence to copy or reuse its code or design.
 >
-> **7. Changes.** These terms may be updated. The date at the top shows the latest version. Continuing to use LitSnap means you accept the updated terms.
+> **7. Open-source software.** LitSnap is built with open-source software. Their copyright notices and licences are listed in [Third-party licences](/third-party-licenses.txt).
 >
-> **8. Contact.** Questions? Open an issue on [GitHub](https://github.com/JohnJosephTopacio/litsnap/issues).
+> **8. Changes.** These terms may be updated. The date at the top shows the latest version. Continuing to use LitSnap means you accept the updated terms.
+>
+> **9. Contact.** Questions? Open an issue on [GitHub](https://github.com/JohnJosephTopacio/litsnap/issues).
 
 When lookups ship (M3), a **"Lookups"** section is added: the looked-up term is sent to LitSnap's server, and results come from third-party sources (Wiktionary, Wikipedia, Wikimedia Commons) under their own licences, with no guarantee of accuracy.
 
@@ -46,7 +48,7 @@ Verified with Playwright against `vite preview`.
 **TERMS-1: page renders**
 Given the built app
 When `/terms` is opened
-Then the "Terms of Use" heading, the "Last updated" date and sections 1–8 are visible.
+Then the "Terms of Use" heading, the "Last updated" date and sections 1–9 are visible.
 
 **TERMS-2: same CSP**
 Given the built app
@@ -63,9 +65,25 @@ Given the open screen, or the reader's settings popover
 When the user clicks "Terms"
 Then `/terms` opens in a new tab.
 
+**TERMS-5: third-party licence notices ship with the site**
+Given the built app
+When `/third-party-licenses.txt` is requested
+Then it lists every package bundled into the web app, plus everything vendored under `apps/web/vendor/`, each with its name, version (or source commit), licence and full licence text. The Terms page links to it (section 7).
+
+**TERMS-6: CI blocks dependencies with disallowed licences**
+Given a production dependency of any workspace package (`apps/web`, `apps/worker`, `packages/shared`) whose licence isn't on the allow-list
+When CI runs
+Then the licence check fails and names the package and its licence.
+
+Allow-list: `MIT`, `ISC`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0`, `0BSD`, `CC0-1.0`, `Unlicense`. Anything else (GPL, LGPL, AGPL, missing or unknown licence) fails until it's reviewed. An exception is added to the allow-list per package, in a PR that explains why.
+
 ## Notes for implementation
 
 - Cloudflare Pages serves `terms.html` at `/terms`. `vite preview` serves single-page apps with a fallback to `index.html`, so the preview server must map `/terms` the same way, and TERMS-1 runs against `/terms`, not `/terms.html`.
+- **Why the notices file is needed:** MIT, BSD and Apache licences require their copyright notice and licence text to go along with copies of the code. Serving bundled JavaScript to browsers is distributing a copy, and Vite's minifier strips the licence comments. So we generate the notices file at build time instead, for example with a Rollup licence plugin over the web bundle.
+- **Vendored code isn't in `node_modules`,** so no tool will find it automatically. The build step must also read the licence files kept under `apps/web/vendor/` ([decision 0001](../decisions/0001-vendor-foliate-js.md)).
+- **The licence check covers production dependencies only.** Dev tools (ESLint, Vitest, …) aren't shipped, so their licences don't bind the app. `pnpm licenses list --prod --json` gives the data without a new dependency. The check covers the Worker too: it isn't sent to browsers, but AGPL applies even to software that's only accessed over a network.
+- The check is a `pnpm check:licenses` script, run in CI next to lint. It is not part of `pnpm check`, so it doesn't slow down the local test loop.
 - This is UI with no core logic, so it's one PR. It lands **before** the `epub-reader` PR, linked from the current home page. The `epub-reader` PR keeps the footer link and adds the settings-popover link (TERMS-4).
 
 ## Out of scope
