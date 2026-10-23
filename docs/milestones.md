@@ -16,7 +16,8 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Store books and progress in IndexedDB.
 - DRM detection and message.
 - Content Security Policy that blocks scripts in books, plus Playwright end-to-end tests.
-- Specs: [drm-detection](features/drm-detection.md), [book-storage](features/book-storage.md), [epub-reader](features/epub-reader.md).
+- Terms page (moved up from M6, since the reader goes public when M1 merges).
+- Specs: [drm-detection](features/drm-detection.md), [book-storage](features/book-storage.md), [epub-reader](features/epub-reader.md), [terms-page](features/terms-page.md).
 
 ## M2 — Selection menu & lookup modal (mock data)
 
@@ -43,5 +44,5 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 ## M6 — Library, history & polish
 
 - Library page, per-book lookup history.
-- Terms and Privacy pages, Cloudflare Web Analytics.
+- Privacy page, Cloudflare Web Analytics.
 - Accessibility and visual polish pass; README with architecture diagram.

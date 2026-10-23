@@ -166,7 +166,17 @@ Given the built app served by `vite preview`
 When `/` is requested
 Then the response carries the `Content-Security-Policy` header from decision 0002, identical to the one in the built `_headers` file.
 
-RD-21 is what stops anyone from loosening the CSP later without noticing. It must never be skipped or weakened without a new decision record.
+**RD-24: book text is shown as text, never HTML**
+Given a book whose title, author and chapter names contain HTML (e.g. `<img src=x onerror=alert(1)>`)
+When it is opened
+Then the top bar, TOC panel and bottom bar show those strings as literal text, and no element is created from them.
+
+**RD-25: HTML-injection APIs are banned by lint**
+Given app code (not `vendor/`) that uses `dangerouslySetInnerHTML`, assigns `innerHTML`/`outerHTML`, or calls `insertAdjacentHTML` or `document.write`
+When `pnpm lint` runs
+Then it fails. A specific exception needs an `eslint-disable` comment with a reason and is called out in the PR.
+
+RD-21 is what stops anyone from loosening the CSP later without noticing. It must never be skipped or weakened without a new decision record. RD-24 and RD-25 cover the part the CSP doesn't: our own UI. The CSP protects the book's iframes, but if our interface inserted a book's chapter title as HTML, that would be a separate hole.
 
 ## Fixtures
 
