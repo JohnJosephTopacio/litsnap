@@ -12,15 +12,23 @@ const CONTAINER_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </rootfiles>
 </container>`;
 
-const CONTENT_OPF = `<?xml version="1.0" encoding="UTF-8"?>
+const escapeXml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const contentOpf = (title: string, manifest: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
 <package version="3.0" unique-identifier="uid" xmlns="http://www.idpf.org/2007/opf">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="uid">urn:uuid:00000000-0000-4000-8000-000000000000</dc:identifier>
-    <dc:title>Test Book</dc:title>
+    <dc:title>${escapeXml(title)}</dc:title>
     <dc:language>en</dc:language>
   </metadata>
   <manifest>
-    <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>${manifest
+      .map(
+        (item) => `
+    ${item}`,
+      )
+      .join('')}
   </manifest>
   <spine>
     <itemref idref="ch1"/>
@@ -36,13 +44,22 @@ export interface BuildEpubOptions {
   files?: Record<string, string>;
   /** Paths to leave out of the default book (e.g. `META-INF/container.xml`). */
   omit?: string[];
+  /** `dc:title`, as plain text (it is XML-escaped). Default `Test Book`. */
+  title?: string;
+  /** Extra `<item …/>` elements for the OPF manifest, e.g. a script file a chapter references. */
+  manifest?: string[];
 }
 
 /** A minimal valid EPUB 3, plus whatever `options` add or remove. */
 export function buildEpub(options: BuildEpubOptions = {}): Blob {
+  return new Blob([buildEpubBytes(options)], { type: 'application/epub+zip' });
+}
+
+/** Same as `buildEpub`, as bytes (for Playwright's `setInputFiles`). */
+export function buildEpubBytes(options: BuildEpubOptions = {}): Uint8Array<ArrayBuffer> {
   const files: Record<string, string> = {
     'META-INF/container.xml': CONTAINER_XML,
-    'OEBPS/content.opf': CONTENT_OPF,
+    'OEBPS/content.opf': contentOpf(options.title ?? 'Test Book', options.manifest ?? []),
     'OEBPS/chapter1.xhtml': CHAPTER_XHTML,
     ...options.files,
   };
@@ -54,7 +71,7 @@ export function buildEpub(options: BuildEpubOptions = {}): Blob {
     if (!omit.has(path)) zippable[path] = strToU8(content);
   }
 
-  return new Blob([zipSync(zippable)], { type: 'application/epub+zip' });
+  return zipSync(zippable);
 }
 
 /**

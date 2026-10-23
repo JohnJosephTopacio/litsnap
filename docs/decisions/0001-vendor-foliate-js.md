@@ -18,6 +18,8 @@ Vendor it into `apps/web/vendor/foliate-js/`, copied from commit
 [`78914aef4466eb960965702401634c2cb348e9b1`](https://github.com/johnfactotum/foliate-js/commit/78914aef4466eb960965702401634c2cb348e9b1)
 (2026-05-01), with its `LICENSE` file kept alongside. The directory gets a short `VENDORED.md` recording the source commit and any local changes (ideally none).
 
+**Only the EPUB code path is vendored**, byte-identical to upstream. `view.js` also dynamically imports modules for formats we don't support (PDF, MOBI, FB2, comics) and features we don't use (TTS, search). A Vite plugin (`foliateStubs`) resolves those imports to a module that throws, so we don't edit `view.js` and don't ship pdf.js (about 12 MB). We only ever pass EPUBs, which never reach those branches. `VENDORED.md` lists the exact files.
+
 ## Why
 
 - **What we review is what we run.** foliate-js renders untrusted book content, and the source code is part of our security surface ([0002](0002-csp-for-book-content.md)). A vendored copy shows up in diffs and code review. A git dependency is hidden in `node_modules`.
