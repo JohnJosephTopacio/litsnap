@@ -12,7 +12,7 @@ const CONTAINER_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </rootfiles>
 </container>`;
 
-const escapeXml = (text: string) =>
+export const escapeXml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const contentOpf = (title: string, manifest: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
