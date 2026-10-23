@@ -68,6 +68,33 @@ export const HOSTILE_TITLE = '<img src=x onerror="top.localStorage.setItem(\'pwn
 export const hostileTitleEpub = () =>
   epub('hostile-title.epub', buildEpubBytes({ title: HOSTILE_TITLE }));
 
+/** RD-4: a DRM marker (Adobe ADEPT's rights.xml). Nothing is actually encrypted. */
+export const fakeDrmEpub = () =>
+  epub('fake-drm.epub', buildEpubBytes({ files: { 'META-INF/rights.xml': '<rights/>' } }));
+
+/** RD-5: named .epub, but not a ZIP. */
+export const corruptEpub = (): FixtureFile => ({
+  name: 'corrupt.epub',
+  mimeType: 'application/epub+zip',
+  buffer: Buffer.from('This is not a ZIP file, whatever its name says.'),
+});
+
+/** RD-3: not EPUBs. */
+export const pdfFile = (): FixtureFile => ({
+  name: 'paper.pdf',
+  mimeType: 'application/pdf',
+  buffer: Buffer.from('%PDF-1.7\n%%EOF\n'),
+});
+export const textFile = (): FixtureFile => ({
+  name: 'notes.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('Just some notes.'),
+});
+
+/** RD-7: a second, small, valid book. */
+export const SECOND_TITLE = 'A Second Book';
+export const secondEpub = () => epub('second.epub', buildEpubBytes({ title: SECOND_TITLE }));
+
 /** RD-20: one allowed and one disallowed external link. */
 export const linksEpub = () =>
   epub(
