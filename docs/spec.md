@@ -107,7 +107,7 @@ Browser (Cloudflare Pages)                    Cloudflare Worker (Hono)
 
 ## 9. Future (not v1)
 
-- **Premium tier:** accounts, payments (e.g. Stripe), paid providers (e.g. Brave Search images, Merriam-Webster/Oxford dictionaries), possibly flashcards from lookup history.
+- **Premium tier:** accounts, payments (e.g. Stripe), paid providers (e.g. Brave Search images, Merriam-Webster/Oxford dictionaries), possibly flashcards from lookup history. Before it launches: meet the security obligations in [decision 0002](decisions/0002-csp-for-book-content.md#future-obligations) (session tokens in `HttpOnly` cookies, never readable by scripts), and get the Terms and Privacy pages legally reviewed.
 - AI context-aware lookups, mobile polish, sync, other languages.
 
 ## 10. Engineering process
