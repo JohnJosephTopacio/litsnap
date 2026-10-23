@@ -1,8 +1,4 @@
-// Acceptance criteria from docs/features/drm-detection.md.
-//
-// RED PHASE: every test is `it.fails` because inspectEpub is a stub. The implementation PR turns
-// each `it.fails` into `it` and changes nothing else, so the review can confirm the tests weren't
-// weakened to make them pass.
+// Acceptance criteria from docs/features/drm-detection.md (DRM-1…9), plus edge cases of the rules.
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { inspectEpub } from './inspectEpub';
@@ -141,6 +137,47 @@ describe('inspectEpub', () => {
       const epub = buildEpub({
         files: { [ENCRYPTION]: '<encryption><EncryptedData></encryption' },
       });
+
+      expect(await inspectEpub(epub)).toEqual({ status: 'drm', scheme: 'unknown-encryption' });
+    });
+  });
+
+  describe('DRM-6 edge cases: which EncryptionMethod counts', () => {
+    it('ignores the key-wrapping method nested inside KeyInfo', async () => {
+      // Content is font-obfuscated; the nested EncryptedKey's RSA method describes the key only.
+      const xml = `<?xml version="1.0"?>
+<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+            xmlns:enc="http://www.w3.org/2001/04/xmlenc#"
+            xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <enc:EncryptedData>
+    <ds:KeyInfo>
+      <enc:EncryptedKey>
+        <enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#rsa-1_5"/>
+      </enc:EncryptedKey>
+    </ds:KeyInfo>
+    <enc:EncryptionMethod Algorithm="${FONT_OBFUSCATION_IDPF}"/>
+    <enc:CipherData><enc:CipherReference URI="OEBPS/font.otf"/></enc:CipherData>
+  </enc:EncryptedData>
+</encryption>`;
+      const epub = buildEpub({ files: { [ENCRYPTION]: xml } });
+
+      expect(await inspectEpub(epub)).toEqual({ status: 'ok' });
+    });
+
+    it('treats EncryptedData with no EncryptionMethod as DRM', async () => {
+      const xml = `<encryption xmlns:enc="http://www.w3.org/2001/04/xmlenc#">
+  <enc:EncryptedData><enc:CipherData/></enc:EncryptedData>
+</encryption>`;
+      const epub = buildEpub({ files: { [ENCRYPTION]: xml } });
+
+      expect(await inspectEpub(epub)).toEqual({ status: 'drm', scheme: 'unknown-encryption' });
+    });
+
+    it('still detects AES when encryption.xml forgets the XML Encryption namespace', async () => {
+      const xml = `<encryption>
+  <EncryptedData><EncryptionMethod Algorithm="${AES_128_CBC}"/></EncryptedData>
+</encryption>`;
+      const epub = buildEpub({ files: { [ENCRYPTION]: xml } });
 
       expect(await inspectEpub(epub)).toEqual({ status: 'drm', scheme: 'unknown-encryption' });
     });
