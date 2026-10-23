@@ -79,7 +79,8 @@ Allow-list: `MIT`, `ISC`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0`, `0BSD`, 
 
 ## Notes for implementation
 
-- Cloudflare Pages serves `terms.html` at `/terms`. `vite preview` serves single-page apps with a fallback to `index.html`, so the preview server must map `/terms` the same way, and TERMS-1 runs against `/terms`, not `/terms.html`.
+- Cloudflare Pages serves `terms.html` at `/terms`, and so does `vite preview` (it tries `<path>.html` before falling back to `index.html`). TERMS-1 runs against `/terms`, not `/terms.html`.
+- The CSP (decision 0002) and Playwright arrive in this PR rather than with the reader, because TERMS-2 needs the CSP and TERMS-1/4 need Playwright. Landing the CSP earlier is safe: the rule is only that foliate never lands _without_ it.
 - **Why the notices file is needed:** MIT, BSD and Apache licences require their copyright notice and licence text to go along with copies of the code. Serving bundled JavaScript to browsers is distributing a copy, and Vite's minifier strips the licence comments. So we generate the notices file at build time instead, for example with a Rollup licence plugin over the web bundle.
 - **Vendored code isn't in `node_modules`,** so no tool will find it automatically. The build step must also read the licence files kept under `apps/web/vendor/` ([decision 0001](../decisions/0001-vendor-foliate-js.md)).
 - **The licence check covers production dependencies only.** Dev tools (ESLint, Vitest, …) aren't shipped, so their licences don't bind the app. `pnpm licenses list --prod --recursive --json` gives the data for every workspace package without a new dependency. The check covers the Worker too: it isn't sent to browsers, but AGPL applies even to software that's only accessed over a network.

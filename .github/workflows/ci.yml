@@ -37,6 +37,11 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+      # Playwright runs against the built app via `vite preview`, with the production CSP.
+      - name: Install Playwright browser
+        run: pnpm --filter @litsnap/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
   deploy:
     name: Deploy
     needs: check
