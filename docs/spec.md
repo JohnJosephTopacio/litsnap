@@ -85,6 +85,7 @@ Out of scope for v1: notes, bookmarks, user highlights, sync, accounts, mobile-p
 
 - Books, reading progress, settings, and lookup history live **only in the user's browser** (IndexedDB). Books are never uploaded.
 - The Worker only ever receives the normalised lookup term — never book content beyond that.
+- Book content is untrusted. A Content Security Policy stops scripts inside books from running and blocks books from loading remote resources (e.g. tracking pixels). See [decision 0002](decisions/0002-csp-for-book-content.md).
 - Analytics: Cloudflare Web Analytics (cookieless, no consent banner needed).
 
 ## 8. Architecture
@@ -115,7 +116,7 @@ Browser (Cloudflare Pages)                    Cloudflare Worker (Hono)
 - **Test-driven:** acceptance criteria become failing tests first (red → green → refactor).
   - Vitest — pure logic (normalisation, lookup chain with mocked fetch, storage).
   - React Testing Library — components (menu, modal).
-  - `@cloudflare/vitest-pool-workers` — Worker.
+  - `@cloudflare/vitest-plugin` — Worker.
   - Playwright — end-to-end flows using committed public-domain fixtures (Gutenberg EPUB, text PDF, scanned PDF, fake DRM file).
   - Reader-library integration and visual polish may be test-after, covered by Playwright.
 - **Roles:** Claude writes code; the owner reviews and is the only one who merges.
