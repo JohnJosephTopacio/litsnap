@@ -6,7 +6,7 @@ import { openExternalLink } from './externalLinks';
 interface ReaderViewProps {
   file: File;
   /** Called once the book is parsed, before the first page renders. */
-  onOpen: (metadata: BookMetadata | undefined) => void;
+  onOpen: (file: File, metadata: BookMetadata | undefined) => void;
   onError: (error: unknown) => void;
 }
 
@@ -36,7 +36,7 @@ export function ReaderView({ file, onOpen, onError }: ReaderViewProps) {
 
       await view.open(file);
       if (isCancelled()) return;
-      onOpen(view.book.metadata);
+      onOpen(file, view.book.metadata);
       await view.init({});
     }
 
