@@ -13,42 +13,7 @@ import {
   textFile,
   type FixtureFile,
 } from './fixtures';
-
-interface Stored {
-  titles: string[];
-  current: { title: string } | undefined;
-}
-
-/** What LitSnap has saved, read straight from IndexedDB. */
-function stored(page: Page): Promise<Stored> {
-  return page.evaluate(async () => {
-    // Opening a database that doesn't exist would *create* it (empty, at version 1) and break
-    // the app's own schema upgrade, so check first.
-    const exists = (await indexedDB.databases()).some((db) => db.name === 'litsnap');
-    if (!exists) return { titles: [], current: undefined };
-    return new Promise<Stored>((resolve, reject) => {
-      const request = indexedDB.open('litsnap');
-      request.onerror = () => {
-        reject(request.error ?? new Error('open failed'));
-      };
-      request.onsuccess = () => {
-        const db = request.result;
-        const tx = db.transaction(['books', 'settings']);
-        const books = tx.objectStore('books').getAll();
-        const currentId = tx.objectStore('settings').get('currentBookId');
-        tx.oncomplete = () => {
-          const all = books.result as { id: string; title: string }[];
-          const current = all.find((book) => book.id === currentId.result);
-          resolve({
-            titles: all.map((book) => book.title).sort(),
-            current: current && { title: current.title },
-          });
-          db.close();
-        };
-      };
-    });
-  });
-}
+import { stored } from './storage';
 
 async function pick(page: Page, file: string | FixtureFile) {
   await page.locator('input[type="file"]').setInputFiles(file);

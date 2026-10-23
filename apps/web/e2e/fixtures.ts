@@ -1,6 +1,6 @@
 // Test books for Playwright, built in memory. See fixtures/README.md.
 import { fileURLToPath } from 'node:url';
-import { buildEpubBytes } from '../src/epub/testing/buildEpub';
+import { buildEpubBytes, escapeXml } from '../src/epub/testing/buildEpub';
 
 export interface FixtureFile {
   name: string;
@@ -67,6 +67,25 @@ export const remoteImageEpub = () =>
 export const HOSTILE_TITLE = '<img src=x onerror="top.localStorage.setItem(\'pwned-title\', 1)">';
 export const hostileTitleEpub = () =>
   epub('hostile-title.epub', buildEpubBytes({ title: HOSTILE_TITLE }));
+
+/** RD-24: a TOC whose chapter label is HTML. It must show up as literal text. */
+export const hostileTocEpub = () =>
+  epub(
+    'hostile-toc.epub',
+    buildEpubBytes({
+      manifest: [
+        '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
+      ],
+      files: {
+        'OEBPS/nav.xhtml': `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body><nav epub:type="toc"><ol>
+  <li><a href="chapter1.xhtml">${escapeXml(HOSTILE_TITLE)}</a></li>
+</ol></nav></body></html>`,
+      },
+    }),
+  );
 
 /** RD-4: a DRM marker (Adobe ADEPT's rights.xml). Nothing is actually encrypted. */
 export const fakeDrmEpub = () =>
