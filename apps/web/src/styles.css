@@ -1,0 +1,50 @@
+/* Minimal layout only. Visual polish is test-after work (docs/features/epub-reader.md). */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.open-screen,
+footer {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.reader {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.book-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-view {
+  flex: 1;
+  min-height: 0;
+}
+
+foliate-view {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
