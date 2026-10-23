@@ -55,6 +55,21 @@ frame-ancestors 'none'
 - **Playwright:** the same string is set as `preview.headers` in Vite config, so end-to-end tests run against the real policy (RD-21–RD-23).
 - **Dev server:** no CSP, because React Fast Refresh injects an inline script. The README warns: don't open untrusted books in `pnpm dev`.
 
+## Our own UI: book text is data, not HTML
+
+The CSP protects foliate's iframes, but strings taken from a book (title, author, TOC labels, and later the source sentence and selected text) are also shown in **our own UI**. They must always be rendered as text. React does this by default.
+
+- Lint bans `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML` assignment, `insertAdjacentHTML` and `document.write` in app code (RD-25), using ESLint's built-in `no-restricted-syntax`. No new plugin is needed.
+- Tested by RD-24 with a book whose metadata contains HTML.
+
+## Future obligations
+
+These don't apply yet, but **must** be met when the feature that needs them arrives:
+
+- **Accounts / premium ([spec.md §9](../spec.md#9-future-not-v1)):** session tokens live in `HttpOnly`, `Secure`, `SameSite` cookies, **never** in `localStorage`, IndexedDB or JS-readable cookies. That way, even a CSP bypass can't steal them. The Worker checks `Origin` on state-changing requests.
+- **Before accounts or payments:** revisit this decision. Consider adding [Trusted Types](https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API) (`require-trusted-types-for 'script'`) as a second layer, and get the Terms and Privacy pages legally reviewed.
+- **Any new network destination:** added to the CSP explicitly, in a reviewed PR (below).
+
 ## Consequences
 
 - Each later milestone that talks to the network widens the policy explicitly, in a reviewed PR:
