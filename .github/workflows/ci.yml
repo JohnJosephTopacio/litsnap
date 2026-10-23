@@ -43,6 +43,16 @@ jobs:
         run: pnpm --filter @litsnap/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
 
+      # On failure, keep Playwright's HTML report (screenshots and step-by-step traces).
+      # Download it from the run's Summary page → Artifacts, then `npx playwright show-report <dir>`.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
   deploy:
     name: Deploy
     needs: check
