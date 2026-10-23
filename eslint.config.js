@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/worker-configuration.d.ts',
       '**/playwright-report/**',
       '**/test-results/**',
+      // Third-party code keeps upstream formatting (decision 0001).
+      'apps/web/vendor/**',
     ],
   },
   js.configs.recommended,
