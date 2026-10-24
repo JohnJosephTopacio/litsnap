@@ -114,6 +114,54 @@ export const textFile = (): FixtureFile => ({
 export const SECOND_TITLE = 'A Second Book';
 export const secondEpub = () => epub('second.epub', buildEpubBytes({ title: SECOND_TITLE }));
 
+/** RD-17: publisher CSS that hard-codes colours, plus an image that must not be inverted. */
+export const colouredEpub = () =>
+  epub(
+    'coloured.epub',
+    buildEpubBytes({
+      manifest: ['<item id="css" href="style.css" media-type="text/css"/>'],
+      files: {
+        'OEBPS/style.css':
+          'body { background: #ffeecc; color: #880000; } p.note { color: #008800; background: #eeeeee; }',
+        'OEBPS/chapter1.xhtml': chapter(
+          '<link rel="stylesheet" href="style.css"/>',
+          `<p>Plain paragraph.</p><p class="note">Coloured paragraph.</p>
+<img id="pic" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/>`,
+        ),
+      },
+    }),
+  );
+
+/** RD-19: a footnote reference in chapter 1 pointing at an endnote in a second section. */
+export const footnoteEpub = () =>
+  epub(
+    'footnote.epub',
+    buildEpubBytes({
+      manifest: [
+        '<item id="notes" href="notes.xhtml" media-type="application/xhtml+xml"/>',
+        '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
+      ],
+      spine: ['notes'],
+      files: {
+        'OEBPS/chapter1.xhtml': chapter(
+          '',
+          '<p>A hipped roof<a id="ref-1" href="notes.xhtml#note-1">1</a> slopes on all sides.</p>',
+        ),
+        'OEBPS/notes.xhtml': chapter(
+          '',
+          '<section><p id="note-1">Footnote one: also called a hip roof.</p></section>',
+        ),
+        'OEBPS/nav.xhtml': `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body><nav epub:type="toc"><ol>
+  <li><a href="chapter1.xhtml">Chapter One</a></li>
+  <li><a href="notes.xhtml">Endnotes</a></li>
+</ol></nav></body></html>`,
+      },
+    }),
+  );
+
 /** RD-20: one allowed and one disallowed external link. */
 export const linksEpub = () =>
   epub(

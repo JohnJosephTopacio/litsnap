@@ -15,7 +15,11 @@ const CONTAINER_XML = `<?xml version="1.0" encoding="UTF-8"?>
 export const escapeXml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-const contentOpf = (title: string, manifest: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
+const contentOpf = (
+  title: string,
+  manifest: string[],
+  spine: string[],
+) => `<?xml version="1.0" encoding="UTF-8"?>
 <package version="3.0" unique-identifier="uid" xmlns="http://www.idpf.org/2007/opf">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="uid">urn:uuid:00000000-0000-4000-8000-000000000000</dc:identifier>
@@ -31,7 +35,7 @@ const contentOpf = (title: string, manifest: string[]) => `<?xml version="1.0" e
       .join('')}
   </manifest>
   <spine>
-    <itemref idref="ch1"/>
+    <itemref idref="ch1"/>${spine.map((idref) => `\n    <itemref idref="${idref}"/>`).join('')}
   </spine>
 </package>`;
 
@@ -48,6 +52,8 @@ export interface BuildEpubOptions {
   title?: string;
   /** Extra `<item …/>` elements for the OPF manifest, e.g. a script file a chapter references. */
   manifest?: string[];
+  /** Manifest ids to read after `chapter1.xhtml`, in order (add their items via `manifest`). */
+  spine?: string[];
 }
 
 /** A minimal valid EPUB 3, plus whatever `options` add or remove. */
@@ -59,7 +65,11 @@ export function buildEpub(options: BuildEpubOptions = {}): Blob {
 export function buildEpubBytes(options: BuildEpubOptions = {}): Uint8Array<ArrayBuffer> {
   const files: Record<string, string> = {
     'META-INF/container.xml': CONTAINER_XML,
-    'OEBPS/content.opf': contentOpf(options.title ?? 'Test Book', options.manifest ?? []),
+    'OEBPS/content.opf': contentOpf(
+      options.title ?? 'Test Book',
+      options.manifest ?? [],
+      options.spine ?? [],
+    ),
     'OEBPS/chapter1.xhtml': CHAPTER_XHTML,
     ...options.files,
   };
