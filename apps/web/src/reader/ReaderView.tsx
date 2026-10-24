@@ -1,6 +1,13 @@
 // Hosts foliate-js's <foliate-view> for one book. Spec: docs/features/epub-reader.md.
 import type { BookMetadata, RelocateDetail, TocItem, View } from 'foliate-js/view.js';
-import { useEffect, useEffectEvent, useImperativeHandle, useRef, type Ref } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useImperativeHandle,
+  useRef,
+  type Ref,
+} from 'react';
 import type { Layout, Position, Theme } from '../storage/bookStore';
 import { bookCss } from './appearance';
 import { openExternalLink } from './externalLinks';
@@ -76,17 +83,19 @@ export function ReaderView({
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const queued = useRef(0);
 
+  // Only touches refs, so it's the same function on every render.
+  const call = useCallback((action: (v: View) => Promise<unknown>) => {
+    if (queued.current >= MAX_QUEUED) return;
+    queued.current++;
+    queue.current = queue.current
+      .then(() => view.current && action(view.current))
+      .catch(console.error)
+      .finally(() => {
+        queued.current--;
+      });
+  }, []);
+
   useImperativeHandle(ref, () => {
-    const call = (action: (v: View) => Promise<unknown>) => {
-      if (queued.current >= MAX_QUEUED) return;
-      queued.current++;
-      queue.current = queue.current
-        .then(() => view.current && action(view.current))
-        .catch(console.error)
-        .finally(() => {
-          queued.current--;
-        });
-    };
     return {
       goTo: (href) => {
         call((v) => v.goTo(href));
@@ -104,7 +113,7 @@ export function ReaderView({
         call((v) => v.goRight());
       },
     };
-  }, []);
+  }, [call]);
 
   // Effect events: always the latest props, without re-running the effect (and reopening the
   // book) when a parent re-renders with new callbacks.
@@ -138,6 +147,13 @@ export function ReaderView({
       current.addEventListener('external-link', (event) => {
         event.preventDefault();
         openExternalLink(event.detail.href_);
+      });
+      // Links inside the book (footnotes, cross-references, RD-19): foliate would navigate
+      // straight away, and drop the jump if a page turn is still settling. Queue it instead.
+      current.addEventListener('link', (event) => {
+        event.preventDefault();
+        const { href } = event.detail;
+        call((v) => v.goTo(href));
       });
       current.addEventListener('relocate', (event) => {
         onRelocate(event.detail);
@@ -189,7 +205,7 @@ export function ReaderView({
       current?.close();
       current?.remove();
     };
-  }, [file]);
+  }, [file, call]);
 
   // Settings changed while reading (RD-15…18). The first application happens in open() above.
   const { fontSize, theme, layout } = appearance;

@@ -48,6 +48,8 @@ declare module 'foliate-js/view.js' {
   export interface ViewEventMap extends HTMLElementEventMap {
     /** Cancelable. If not cancelled, foliate calls `window.open(href_, '_blank')`. */
     'external-link': CustomEvent<ExternalLinkDetail>;
+    /** Cancelable. A link within the book; if not cancelled, foliate calls `goTo(href)`. */
+    link: CustomEvent<{ a: HTMLAnchorElement; href: string }>;
     /** After every navigation, page turn or scroll. */
     relocate: CustomEvent<RelocateDetail>;
     /** Each time a section's document is loaded into the iframe. */
