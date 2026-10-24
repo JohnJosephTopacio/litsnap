@@ -1,3 +1,4 @@
+// @vitest-environment node
 // RD-25 from docs/features/epub-reader.md: the lint rule catches each banned API.
 import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
