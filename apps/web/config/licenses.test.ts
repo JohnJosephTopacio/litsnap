@@ -1,3 +1,4 @@
+// @vitest-environment node
 // TERMS-5 (notices) and TERMS-6 (allow-list) from docs/features/terms-page.md.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

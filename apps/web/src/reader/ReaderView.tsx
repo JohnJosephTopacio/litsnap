@@ -1,8 +1,27 @@
 // Hosts foliate-js's <foliate-view> for one book. Spec: docs/features/epub-reader.md.
 import type { BookMetadata, RelocateDetail, TocItem, View } from 'foliate-js/view.js';
-import { useEffect, useEffectEvent, useImperativeHandle, useRef, type Ref } from 'react';
-import type { Position } from '../storage/bookStore';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useImperativeHandle,
+  useRef,
+  type Ref,
+} from 'react';
+import type { Layout, Position, Theme } from '../storage/bookStore';
+import { bookCss } from './appearance';
 import { openExternalLink } from './externalLinks';
+
+export interface Appearance {
+  fontSize: number;
+  theme: Theme;
+  layout: Layout;
+}
+
+function applyAppearance(view: View, { fontSize, theme, layout }: Appearance) {
+  view.renderer.setStyles(bookCss({ fontSize, theme }));
+  if (view.renderer.getAttribute('flow') !== layout) view.renderer.setAttribute('flow', layout);
+}
 
 /** What the reader chrome can ask the book to do. */
 export interface ReaderControls {
@@ -17,6 +36,8 @@ interface ReaderViewProps {
   file: File;
   /** Where to start: a saved position, or the first page if absent. Read once per file. */
   initialPosition?: Position | undefined;
+  /** Font size, theme and layout (RD-15…18); applied before the first page and on every change. */
+  appearance: Appearance;
   ref?: Ref<ReaderControls>;
   /** Called once the book is parsed, before the first page renders. */
   onOpen: (file: File, metadata: BookMetadata | undefined, toc: TocItem[]) => void;
@@ -24,6 +45,8 @@ interface ReaderViewProps {
   onRelocate: (detail: RelocateDetail) => void;
   /** Key presses inside the book's iframe, which don't reach our window. */
   onKeyDown: (event: KeyboardEvent) => void;
+  /** A file dropped onto the book's iframe, which our page never sees otherwise (RD-26). */
+  onDropFile: (file: File) => void;
   onError: (error: unknown) => void;
 }
 
@@ -45,7 +68,13 @@ async function restore(view: View, position: Position) {
 /** At most this many navigation calls wait their turn; more (a held-down arrow key) are dropped. */
 const MAX_QUEUED = 2;
 
-export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderViewProps) {
+export function ReaderView({
+  file,
+  initialPosition,
+  appearance,
+  ref,
+  ...handlers
+}: ReaderViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const view = useRef<View>(undefined);
   // foliate silently ignores navigation while a page turn (or the initial positioning) is still
@@ -54,17 +83,19 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const queued = useRef(0);
 
+  // Only touches refs, so it's the same function on every render.
+  const call = useCallback((action: (v: View) => Promise<unknown>) => {
+    if (queued.current >= MAX_QUEUED) return;
+    queued.current++;
+    queue.current = queue.current
+      .then(() => view.current && action(view.current))
+      .catch(console.error)
+      .finally(() => {
+        queued.current--;
+      });
+  }, []);
+
   useImperativeHandle(ref, () => {
-    const call = (action: (v: View) => Promise<unknown>) => {
-      if (queued.current >= MAX_QUEUED) return;
-      queued.current++;
-      queue.current = queue.current
-        .then(() => view.current && action(view.current))
-        .catch(console.error)
-        .finally(() => {
-          queued.current--;
-        });
-    };
     return {
       goTo: (href) => {
         call((v) => v.goTo(href));
@@ -82,7 +113,7 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
         call((v) => v.goRight());
       },
     };
-  }, []);
+  }, [call]);
 
   // Effect events: always the latest props, without re-running the effect (and reopening the
   // book) when a parent re-renders with new callbacks.
@@ -90,7 +121,9 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
   const onRelocate = useEffectEvent(handlers.onRelocate);
   const onKeyDown = useEffectEvent(handlers.onKeyDown);
   const onError = useEffectEvent(handlers.onError);
+  const onDropFile = useEffectEvent(handlers.onDropFile);
   const startAt = useEffectEvent(() => initialPosition);
+  const latestAppearance = useEffectEvent(() => appearance);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,12 +148,31 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
         event.preventDefault();
         openExternalLink(event.detail.href_);
       });
+      // Links inside the book (footnotes, cross-references, RD-19): foliate would navigate
+      // straight away, and drop the jump if a page turn is still settling. Queue it instead.
+      current.addEventListener('link', (event) => {
+        event.preventDefault();
+        const { href } = event.detail;
+        call((v) => v.goTo(href));
+      });
       current.addEventListener('relocate', (event) => {
         onRelocate(event.detail);
       });
       current.addEventListener('load', (event) => {
-        event.detail.doc.addEventListener('keydown', (keyEvent) => {
+        const { doc } = event.detail;
+        doc.addEventListener('keydown', (keyEvent) => {
           onKeyDown(keyEvent);
+        });
+        // Without these, a file dropped on the page would be opened *inside* the book's iframe.
+        doc.addEventListener('dragover', (dragEvent) => {
+          dragEvent.preventDefault();
+        });
+        doc.addEventListener('drop', (dropEvent) => {
+          dropEvent.preventDefault();
+          const dropped = dropEvent.dataTransfer?.files[0];
+          // The File belongs to the iframe's JavaScript realm, so `instanceof Blob` checks in our
+          // realm (zip.js has them) fail. Re-wrap it as one of ours; the bytes aren't copied.
+          if (dropped) onDropFile(new File([dropped], dropped.name, { type: dropped.type }));
         });
       });
       container.current.append(current);
@@ -128,12 +180,16 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
       await current.open(file);
       if (isCancelled()) return;
       onOpen(file, current.book.metadata, current.book.toc ?? []);
+      applyAppearance(current, latestAppearance()); // before the first page, so it doesn't jump
 
       const position = startAt();
       if (position) await restore(current, position);
       else await current.init({});
       if (isCancelled()) return;
       view.current = current;
+      // Settings changed while the book was opening were skipped by the effect below (no view
+      // yet), so apply the latest ones now.
+      applyAppearance(current, latestAppearance());
     }
 
     open()
@@ -149,7 +205,13 @@ export function ReaderView({ file, initialPosition, ref, ...handlers }: ReaderVi
       current?.close();
       current?.remove();
     };
-  }, [file]);
+  }, [file, call]);
+
+  // Settings changed while reading (RD-15…18). The first application happens in open() above.
+  const { fontSize, theme, layout } = appearance;
+  useEffect(() => {
+    if (view.current) applyAppearance(view.current, { fontSize, theme, layout });
+  }, [fontSize, theme, layout]);
 
   return <div ref={container} className="reader-view" />;
 }

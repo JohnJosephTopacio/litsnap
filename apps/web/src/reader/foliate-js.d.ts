@@ -48,15 +48,25 @@ declare module 'foliate-js/view.js' {
   export interface ViewEventMap extends HTMLElementEventMap {
     /** Cancelable. If not cancelled, foliate calls `window.open(href_, '_blank')`. */
     'external-link': CustomEvent<ExternalLinkDetail>;
+    /** Cancelable. A link within the book; if not cancelled, foliate calls `goTo(href)`. */
+    link: CustomEvent<{ a: HTMLAnchorElement; href: string }>;
     /** After every navigation, page turn or scroll. */
     relocate: CustomEvent<RelocateDetail>;
     /** Each time a section's document is loaded into the iframe. */
     load: CustomEvent<LoadDetail>;
   }
 
+  /** foliate's paginator (reflowable books), available after `open()`. */
+  export interface Renderer extends HTMLElement {
+    /** CSS added to every section's document, after the publisher's. */
+    setStyles(css: string): void;
+  }
+
   /** The `<foliate-view>` custom element, registered when view.js is imported. */
   export interface View extends HTMLElement {
     book: Book;
+    /** Set `flow` to `paginated` or `scrolled`; changing it re-renders at the same place. */
+    renderer: Renderer;
     /** Parses and renders the file. foliate picks the format from its bytes and name. */
     open(file: File): Promise<void>;
     /** Goes to `lastLocation`, the start of the text, or the first page. */

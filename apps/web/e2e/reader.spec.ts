@@ -1,7 +1,8 @@
 // EPUB reader acceptance criteria from docs/features/epub-reader.md, run against `vite preview`
 // with the production CSP. foliate renders each section in an iframe (from a blob: URL) inside
 // closed shadow roots, so tests reach the book through page.frames().
-import { expect, test, type Frame, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { bookFrame } from './book';
 import {
   HOSTILE_TITLE,
   JEKYLL,
@@ -18,29 +19,6 @@ import {
 async function openBook(page: Page, file: string | FixtureFile) {
   await page.goto('/');
   await page.locator('input[type="file"]').setInputFiles(file);
-}
-
-/** The book iframe once it shows `text`. */
-async function bookFrame(page: Page, text: string): Promise<Frame> {
-  let found: Frame | undefined;
-  await expect
-    .poll(
-      async () => {
-        for (const frame of page.frames()) {
-          if (!frame.url().startsWith('blob:')) continue;
-          const body = await frame
-            .locator('body')
-            .textContent({ timeout: 500 })
-            .catch(() => '');
-          if (body?.includes(text)) found = frame;
-        }
-        return found !== undefined;
-      },
-      { message: `a book frame showing "${text}"` },
-    )
-    .toBe(true);
-  if (!found) throw new Error('unreachable');
-  return found;
 }
 
 /** Negative tests need a moment for anything that *would* happen (a request, a script) to happen. */
