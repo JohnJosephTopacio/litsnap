@@ -54,9 +54,17 @@ declare module 'foliate-js/view.js' {
     load: CustomEvent<LoadDetail>;
   }
 
+  /** foliate's paginator (reflowable books), available after `open()`. */
+  export interface Renderer extends HTMLElement {
+    /** CSS added to every section's document, after the publisher's. */
+    setStyles(css: string): void;
+  }
+
   /** The `<foliate-view>` custom element, registered when view.js is imported. */
   export interface View extends HTMLElement {
     book: Book;
+    /** Set `flow` to `paginated` or `scrolled`; changing it re-renders at the same place. */
+    renderer: Renderer;
     /** Parses and renders the file. foliate picks the format from its bytes and name. */
     open(file: File): Promise<void>;
     /** Goes to `lastLocation`, the start of the text, or the first page. */

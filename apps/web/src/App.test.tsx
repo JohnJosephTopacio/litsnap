@@ -5,7 +5,11 @@ import { App } from './App';
 // No stored book, so App shows the open screen once startup finishes. (jsdom has no IndexedDB;
 // the real store is covered by the storage tests and Playwright.)
 vi.mock('./storage/appStore', () => ({
-  appStore: () => Promise.resolve({ getCurrentBook: () => Promise.resolve(undefined) }),
+  appStore: () =>
+    Promise.resolve({
+      getCurrentBook: () => Promise.resolve(undefined),
+      getSettings: () => Promise.resolve({ fontSize: 100, theme: undefined, layout: 'paginated' }),
+    }),
 }));
 
 describe('App', () => {

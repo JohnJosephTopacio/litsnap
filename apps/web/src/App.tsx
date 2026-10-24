@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkFile } from './reader/checkFile';
 import { bookAuthor, bookTitle } from './reader/bookMetadata';
 import { Notice, type NoticeKind } from './reader/Notice';
+import { effectiveTheme } from './reader/appearance';
 import { ReaderScreen, type OpenBook } from './reader/ReaderScreen';
+import { usePrefersDark, useSettings } from './reader/useSettings';
 import { appStore } from './storage/appStore';
 import { bookId, StorageFullError } from './storage/bookStore';
 
@@ -47,6 +49,13 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const reopened = book?.reopened ?? false;
+  const { settings, update: updateSettings } = useSettings();
+  const theme = effectiveTheme(settings?.theme, usePrefersDark());
+
+  // The app's own colours follow the reader theme too (RD-16), via `color-scheme` in styles.css.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   // On start, go straight back into the last book without showing the open screen (RD-8).
   useEffect(() => {
@@ -138,15 +147,20 @@ export function App() {
   const chooseFile = () => input.current?.click();
   const status = checking ? <p role="status">Opening…</p> : notice && <Notice kind={notice} />;
 
-  if (starting) return <p role="status">Opening…</p>;
+  // Settings are needed before the first page, so the book doesn't render and then jump.
+  if (starting || (book && !settings)) return <p role="status">Opening…</p>;
 
-  if (book) {
+  if (book && settings) {
     return (
       <>
         <ReaderScreen
           book={book}
+          settings={settings}
+          theme={theme}
           status={status}
           onChooseFile={chooseFile}
+          onDropFile={(file) => void openFile(file)}
+          onSettingsChange={updateSettings}
           onOpen={onOpen}
           onError={onError}
         />

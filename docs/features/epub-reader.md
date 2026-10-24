@@ -78,6 +78,11 @@ Given a book is open
 When the user chooses "Open another book" and picks a different EPUB
 Then the new book opens and becomes the current book.
 
+**RD-26: drop onto the reader**
+Given a book is open
+When an EPUB is dropped anywhere on the reader, including onto the book's page itself
+Then it opens as with "Open another book" (RD-7), and the browser doesn't navigate away to the dropped file.
+
 ### Position and reopening
 
 **RD-8: reopen at saved position**
