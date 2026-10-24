@@ -118,6 +118,32 @@ export function write(
   );
 }
 
+/**
+ * A stored setting (`fontSize`, `theme`, `layout`). The app saves settings in the background, so
+ * a test that reloads right after changing one must wait for this first: a person can't reload
+ * within milliseconds of clicking, but a test can.
+ */
+export function storedSetting(page: Page, key: string): Promise<unknown> {
+  return page.evaluate(
+    (key) =>
+      new Promise<unknown>((resolve, reject) => {
+        const request = indexedDB.open('litsnap');
+        request.onerror = () => {
+          reject(request.error ?? new Error('open failed'));
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          const get = db.transaction('settings').objectStore('settings').get(key);
+          get.onsuccess = () => {
+            resolve(get.result);
+            db.close();
+          };
+        };
+      }),
+    key,
+  );
+}
+
 /** Resolves once the app has created its database (it does so on startup). */
 export async function databaseReady(page: Page) {
   await page.waitForFunction(async () =>

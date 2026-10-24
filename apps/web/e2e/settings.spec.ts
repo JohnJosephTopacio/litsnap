@@ -3,6 +3,7 @@
 // production CSP.
 import { expect, test, type Frame, type Page } from '@playwright/test';
 import { bookFrame } from './book';
+import { storedSetting } from './storage';
 import {
   JEKYLL,
   SECOND_TITLE,
@@ -65,6 +66,7 @@ test('RD-15: font size steps by 10%, survives a reload, and stops at 80% and 200
     .poll(async () => (await fontPx(await bookFrame(page, 'Utterson the lawyer'))) / base)
     .toBeCloseTo(1.2, 2);
 
+  await expect.poll(() => storedSetting(page, 'fontSize')).toBe(120);
   await page.reload();
   // Position isn't what this test is about (RD-8 is), so don't depend on it having been saved.
   await expect(bottomBar(page)).toContainText('%');
@@ -101,6 +103,7 @@ test.describe('with the OS in dark mode', () => {
     await page.getByRole('button', { name: 'Light' }).click();
     await expect.poll(() => style(frame, 'body', 'background-color')).toBe(LIGHT.background);
 
+    await expect.poll(() => storedSetting(page, 'theme')).toBe('light');
     await page.reload();
     const reloaded = await bookFrame(page, 'Plain paragraph.');
     await expect.poll(() => style(reloaded, 'body', 'background-color')).toBe(LIGHT.background);
@@ -160,6 +163,7 @@ test('RD-18: scrolled layout scrolls, keeps the place, and survives a reload', a
   await scroll();
   await expect.poll(() => percent(page)).toBeGreaterThan(atSwitch);
 
+  await expect.poll(() => storedSetting(page, 'layout')).toBe('scrolled');
   await page.reload();
   await expect(bottomBar(page)).toContainText('%');
   await goToChapter(page, 'Story of the Door'); // position isn't what this test is about
