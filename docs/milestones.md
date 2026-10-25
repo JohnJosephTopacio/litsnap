@@ -28,6 +28,8 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - 1–6 word selection → vertical menu (Definition / Image / Both), `D`/`I`/`B` shortcuts.
 - Centred modal over dimmed page, S/M/L sizes, `Esc`/click-away, focus trap, source sentence.
 - Normalisation logic (TDD).
+- Specs, in this order: [lookup-term](features/lookup-term.md) (normalisation, word count, source sentence), then selection-menu, then lookup-modal.
+- **Until M3:** the deployed modal shows the term, the source sentence and the real _Search Google ↗_ link, plus _"Definitions and images are coming soon."_. Mock definitions are only used in `pnpm dev` and tests, so nobody sees made-up content.
 
 ## M3 — Worker + definitions
 
