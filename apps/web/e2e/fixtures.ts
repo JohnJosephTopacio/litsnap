@@ -162,6 +162,27 @@ export const footnoteEpub = () =>
     }),
   );
 
+/**
+ * RD-27/28: a fixed-layout book. Its page sets its own colours, which must survive any theme.
+ * (A real CC0 fixed-layout book as a fixture is part of #17's follow-up.)
+ */
+export const FIXED_TITLE = 'Fixed Layout Book';
+export const fixedLayoutEpub = () =>
+  epub(
+    'fixed-layout.epub',
+    buildEpubBytes({
+      title: FIXED_TITLE,
+      metadata: ['<meta property="rendition:layout">pre-paginated</meta>'],
+      files: {
+        'OEBPS/chapter1.xhtml': `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Page 1</title>
+<meta name="viewport" content="width=600, height=800"/>
+<style>body { background: #ffeecc; color: #880000; }</style></head>
+<body><p>A fixed page.</p></body></html>`,
+      },
+    }),
+  );
+
 /** RD-20: one allowed and one disallowed external link. */
 export const linksEpub = () =>
   epub(

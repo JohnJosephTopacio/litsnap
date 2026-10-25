@@ -18,7 +18,18 @@ export interface Appearance {
   layout: Layout;
 }
 
+/** What the reader chrome needs once a book is parsed. */
+export interface OpenedBook {
+  metadata: BookMetadata | undefined;
+  toc: TocItem[];
+  /** Whole pages at a fixed size (RD-27/28): text size, layout and page theming don't apply. */
+  fixedLayout: boolean;
+}
+
 function applyAppearance(view: View, { fontSize, theme, layout }: Appearance) {
+  // Fixed-layout books use foliate's other renderer, which has neither setStyles() nor `flow`.
+  // Their pages are designed artwork, so we don't restyle them either (RD-28, #17).
+  if (view.isFixedLayout) return;
   view.renderer.setStyles(bookCss({ fontSize, theme }));
   if (view.renderer.getAttribute('flow') !== layout) view.renderer.setAttribute('flow', layout);
 }
@@ -40,7 +51,7 @@ interface ReaderViewProps {
   appearance: Appearance;
   ref?: Ref<ReaderControls>;
   /** Called once the book is parsed, before the first page renders. */
-  onOpen: (file: File, metadata: BookMetadata | undefined, toc: TocItem[]) => void;
+  onOpen: (file: File, opened: OpenedBook) => void;
   /** After every page turn or jump. */
   onRelocate: (detail: RelocateDetail) => void;
   /** Key presses inside the book's iframe, which don't reach our window. */
@@ -179,7 +190,11 @@ export function ReaderView({
 
       await current.open(file);
       if (isCancelled()) return;
-      onOpen(file, current.book.metadata, current.book.toc ?? []);
+      onOpen(file, {
+        metadata: current.book.metadata,
+        toc: current.book.toc ?? [],
+        fixedLayout: current.isFixedLayout,
+      });
       applyAppearance(current, latestAppearance()); // before the first page, so it doesn't jump
 
       const position = startAt();

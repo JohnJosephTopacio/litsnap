@@ -181,3 +181,10 @@ foliate-view {
   width: 100%;
   height: 100%;
 }
+
+.settings-note {
+  margin: 0;
+  max-width: 18rem;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}

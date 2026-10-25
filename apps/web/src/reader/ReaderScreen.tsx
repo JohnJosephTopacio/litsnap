@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { appStore } from '../storage/appStore';
 import type { Position, Settings, Theme } from '../storage/bookStore';
 import { createProgressSaver } from '../storage/progressSaver';
-import { ReaderView, type ReaderControls } from './ReaderView';
+import { ReaderView, type OpenedBook, type ReaderControls } from './ReaderView';
 import { SettingsPanel } from './SettingsPanel';
 import { TocPanel } from './TocPanel';
 
@@ -60,6 +60,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
   const tocButton = useRef<HTMLButtonElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [fixedLayout, setFixedLayout] = useState(false);
   const [panel, setPanel] = useState<Panel>();
   const [location, setLocation] = useState<RelocateDetail>();
 
@@ -92,9 +93,10 @@ export function ReaderScreen(props: ReaderScreenProps) {
 
   const { onOpen } = props;
   const onBookOpen = useCallback(
-    (file: File, metadata: BookMetadata | undefined, items: TocItem[]) => {
-      setToc(items);
-      onOpen(file, metadata);
+    (file: File, opened: OpenedBook) => {
+      setToc(opened.toc);
+      setFixedLayout(opened.fixedLayout);
+      onOpen(file, opened.metadata);
     },
     [onOpen],
   );
@@ -181,7 +183,12 @@ export function ReaderScreen(props: ReaderScreenProps) {
           />
         )}
         {panel === 'settings' && (
-          <SettingsPanel settings={settings} theme={theme} onChange={props.onSettingsChange} />
+          <SettingsPanel
+            settings={settings}
+            theme={theme}
+            fixedLayout={fixedLayout}
+            onChange={props.onSettingsChange}
+          />
         )}
         <button
           type="button"

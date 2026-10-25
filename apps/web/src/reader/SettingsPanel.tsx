@@ -1,4 +1,4 @@
-// The reader's settings popover (RD-15, RD-16, RD-18) and the Terms link (TERMS-4).
+// The reader's settings popover (RD-15, RD-16, RD-18, RD-28) and the Terms link (TERMS-4).
 import { useEffect, useRef } from 'react';
 import type { Layout, Settings, Theme } from '../storage/bookStore';
 
@@ -10,6 +10,8 @@ interface SettingsPanelProps {
   settings: Settings;
   /** The theme in use, which may come from the OS rather than `settings.theme`. */
   theme: Theme;
+  /** Fixed-layout book: text size and layout don't apply (RD-28). */
+  fixedLayout: boolean;
   onChange: (patch: Partial<Settings>) => void;
 }
 
@@ -17,6 +19,7 @@ function Choice<T extends string>(props: {
   label: string;
   options: [T, string][];
   value: T;
+  disabled?: boolean;
   onChange: (value: T) => void;
 }) {
   return (
@@ -27,6 +30,7 @@ function Choice<T extends string>(props: {
           key={value}
           type="button"
           aria-pressed={props.value === value}
+          disabled={props.disabled}
           onClick={() => {
             props.onChange(value);
           }}
@@ -38,22 +42,27 @@ function Choice<T extends string>(props: {
   );
 }
 
-export function SettingsPanel({ settings, theme, onChange }: SettingsPanelProps) {
+export function SettingsPanel({ settings, theme, fixedLayout, onChange }: SettingsPanelProps) {
   const panel = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    panel.current?.querySelector('button')?.focus();
+    panel.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
   }, []);
 
   const size = settings.fontSize;
   return (
     <section ref={panel} className="settings-panel" aria-label="Reader settings">
+      {fixedLayout && (
+        <p className="settings-note">
+          This book has a fixed page layout, so text size and layout don&apos;t apply.
+        </p>
+      )}
       <div role="group" aria-label="Text size" className="settings-row">
         <span aria-hidden="true">Text size</span>
         <button
           type="button"
           aria-label="Smaller text"
-          disabled={size <= FONT_MIN}
+          disabled={fixedLayout || size <= FONT_MIN}
           onClick={() => {
             onChange({ fontSize: size - FONT_STEP });
           }}
@@ -64,7 +73,7 @@ export function SettingsPanel({ settings, theme, onChange }: SettingsPanelProps)
         <button
           type="button"
           aria-label="Larger text"
-          disabled={size >= FONT_MAX}
+          disabled={fixedLayout || size >= FONT_MAX}
           onClick={() => {
             onChange({ fontSize: size + FONT_STEP });
           }}
@@ -90,6 +99,7 @@ export function SettingsPanel({ settings, theme, onChange }: SettingsPanelProps)
           ['scrolled', 'Scrolled'],
         ]}
         value={settings.layout}
+        disabled={fixedLayout}
         onChange={(value) => {
           onChange({ layout: value });
         }}

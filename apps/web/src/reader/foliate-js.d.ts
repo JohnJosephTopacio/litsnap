@@ -65,6 +65,11 @@ declare module 'foliate-js/view.js' {
   /** The `<foliate-view>` custom element, registered when view.js is imported. */
   export interface View extends HTMLElement {
     book: Book;
+    /**
+     * Set by `open()`. Fixed-layout (`pre-paginated`) books use a different renderer,
+     * `foliate-fxl`, which has no `setStyles()` and no `flow` attribute.
+     */
+    isFixedLayout: boolean;
     /** Set `flow` to `paginated` or `scrolled`; changing it re-renders at the same place. */
     renderer: Renderer;
     /** Parses and renders the file. foliate picks the format from its bytes and name. */
