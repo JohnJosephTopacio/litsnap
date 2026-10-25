@@ -32,6 +32,7 @@ LitSnap never contains DRM-circumvention code.
 - Selecting **1–6 words** shows a small **vertical menu** next to the end of the selection: **Definition**, **Image**, **Both**.
 - The menu flips sides to stay on screen.
 - Selections of 0 or 7+ words show no menu.
+- Lookups work in reflowable EPUBs. Fixed-layout EPUBs (comics, picture books) get them with [#19](https://github.com/JohnJosephTopacio/litsnap/issues/19).
 - Keyboard: with a selection active, `D` / `I` / `B` choose Definition / Image / Both.
 - `Esc` or clicking elsewhere dismisses the menu.
 
@@ -60,7 +61,7 @@ LitSnap never contains DRM-circumvention code.
 
 ## 5. Lookup chain
 
-1. **Normalise** the selection: trim, strip surrounding punctuation, lowercase, collapse whitespace, treat hyphens as spaces (`"Hipped-Roof,"` → `hipped roof`).
+1. **Normalise** the selection: trim, strip surrounding punctuation, lowercase, collapse whitespace, treat hyphens as spaces (`"Hipped-Roof,"` → `hipped roof`). The full rules (invisible characters, Unicode, quotes, dashes) are in [lookup-term.md](features/lookup-term.md).
 2. **Dictionary:** Wiktionary (REST API), then dictionaryapi.dev.
 3. **Wikipedia search** (follows redirects, e.g. `hipped roof` → _Hip roof_): article summary and its lead images.
 4. **Wikimedia Commons** image search when the article gives too few images.
