@@ -3,3 +3,5 @@ export interface HealthResponse {
   status: 'ok';
   service: 'litsnap-worker';
 }
+
+export { countWords, displayTerm, MAX_LOOKUP_WORDS, normalise } from './term';
