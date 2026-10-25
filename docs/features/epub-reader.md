@@ -144,6 +144,20 @@ Given paginated layout
 When the user switches to Scrolled
 Then the book scrolls vertically, the position is kept, and the setting survives a reload.
 
+### Fixed-layout books ([#17](https://github.com/JohnJosephTopacio/litsnap/issues/17))
+
+Fixed-layout EPUBs (`rendition:layout` = `pre-paginated`: comics, picture books, …) are drawn by foliate's separate fixed-layout renderer, as whole pages at a fixed size. Zoom, spreads and right-to-left handling are a later feature.
+
+**RD-27: fixed-layout books open**
+Given a fixed-layout EPUB
+When it is opened
+Then its first page renders, its title shows in the top bar, and no error is shown.
+
+**RD-28: settings that don't apply are disabled**
+Given a fixed-layout book is open
+When the user opens Settings
+Then Text size and Layout are disabled, with a note that the book has a fixed page layout. Choosing a theme changes the app around the pages, but the pages keep their own colours.
+
 ### Links
 
 **RD-19: internal links**
