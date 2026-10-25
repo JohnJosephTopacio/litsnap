@@ -183,6 +183,27 @@ export const fixedLayoutEpub = () =>
     }),
   );
 
+/**
+ * RD-29: a cover page whose own CSS absolutely positions a full-width <body>, the pattern from
+ * EPUBs converted from online readers. Generated, so no real (copyrighted) book is committed.
+ */
+export const positionedBodyEpub = () =>
+  epub(
+    'positioned-body.epub',
+    buildEpubBytes({
+      files: {
+        // The cover page's layout CSS, verbatim from such a book; the image is a blank 600×900 SVG.
+        'OEBPS/chapter1.xhtml': chapter(
+          `<style>body{display:table;position:absolute;margin:0!important;height:100%;width:100%;}
+#Cover{display:table-cell;vertical-align:middle;text-align:center;}
+img{height:90vh;margin-left:auto;margin-right:auto;}</style>
+<style>body{margin:1em;background-color:transparent!important;}</style>`,
+          `<div id="Cover"><img id="cover" alt="Cover text" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='900'%3E%3Crect width='600' height='900' fill='%23048'/%3E%3C/svg%3E"/></div>`,
+        ),
+      },
+    }),
+  );
+
 /** RD-20: one allowed and one disallowed external link. */
 export const linksEpub = () =>
   epub(

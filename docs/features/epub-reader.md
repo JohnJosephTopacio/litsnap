@@ -83,6 +83,13 @@ Given a book is open
 When an EPUB is dropped anywhere on the reader, including onto the book's page itself
 Then it opens as with "Open another book" (RD-7), and the browser doesn't navigate away to the dropped file.
 
+**RD-29: books that position their `<body>` still render**
+Given a book whose page sets `position: absolute; width: 100%` on `<body>` (common on covers of EPUBs converted from online readers)
+When it is opened
+Then the page's content shows on the first page, rather than a blank page with the content pushed hundreds of pages to the right.
+
+_Why:_ foliate widens its frame to fit the content, and an absolutely positioned, full-width body widens with it, a loop that ran to about 164,000 px on a real book. foliate resets `position` on `<html>` but not `<body>`, so our book CSS does it for `<body>`.
+
 ### Position and reopening
 
 **RD-8: reopen at saved position**
@@ -137,7 +144,7 @@ Then the dark theme is used. After the user picks Light, light is used regardles
 **RD-17: theme overrides publisher colours**
 Given a book whose CSS sets its own text and background colours
 When either theme is active
-Then the theme's text and background colours win. The publisher's fonts and layout are kept, and images are not inverted.
+Then the theme's text and background colours win. The publisher's fonts and layout are kept (except `<body>` positioning that breaks pagination, RD-29), and images are not inverted.
 
 **RD-18: layout**
 Given paginated layout

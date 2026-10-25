@@ -11,6 +11,7 @@ import {
   REMOTE_HOST,
   hostileTitleEpub,
   linksEpub,
+  positionedBodyEpub,
   remoteImageEpub,
   scriptedEpub,
   type FixtureFile,
@@ -103,4 +104,22 @@ test('RD-20: http(s) links open in a new tab without access to LitSnap; others d
   await frame.getByText('Email someone').click();
   await settle(page);
   expect(popups).toEqual([]);
+});
+
+test('RD-29: a page that absolutely positions its <body> still shows on the first page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await openBook(page, positionedBodyEpub());
+  await expect.poll(() => page.frames().some((f) => f.url().startsWith('blob:'))).toBe(true);
+  const frame = page.frames().find((f) => f.url().startsWith('blob:'));
+  if (!frame) throw new Error('no book frame');
+  await settle(page);
+
+  // Position on the *page*, not inside the book's (possibly enormous) iframe.
+  const box = await frame.locator('#cover').boundingBox();
+  expect(box?.x).toBeGreaterThanOrEqual(0);
+  expect(box?.x).toBeLessThan(1100);
+  // And the section is laid out as a page or two, not hundreds.
+  expect(await frame.evaluate(() => document.documentElement.scrollWidth)).toBeLessThan(5000);
 });
