@@ -33,6 +33,12 @@ describe('bookCss', () => {
     expect(transparentRule?.trim()).toBe('body *');
   });
 
+  it('RD-29: never lets the book position <body>', () => {
+    expect(bookCss({ fontSize: 100, theme: 'light' })).toMatch(
+      /body \{\s*position: static !important;\s*\}/,
+    );
+  });
+
   it('RD-17: never filters or inverts images, and leaves fonts alone', () => {
     const css = bookCss({ fontSize: 100, theme: 'dark' });
 

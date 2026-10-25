@@ -18,6 +18,9 @@ export function effectiveTheme(saved: Theme | undefined, prefersDark: boolean): 
  * - Colours are forced with `!important` on every element, because publisher CSS often hard-codes
  *   them and would otherwise leave dark text on a dark page (RD-17). Only colours are touched:
  *   fonts, sizes and layout stay the publisher's, and images are never filtered or inverted.
+ * - One layout exception: `<body>` is never positioned (RD-29). foliate widens its frame to fit
+ *   the content, so an absolutely positioned, full-width body grows with it in a loop. foliate
+ *   already resets `position` on `<html>` for the same reason, but not on `<body>`.
  */
 export function bookCss({ fontSize, theme }: { fontSize: number; theme: Theme }): string {
   const colors = THEME_COLORS[theme];
@@ -29,6 +32,9 @@ html {
 html, body {
   background-color: ${colors.background} !important;
   color: ${colors.text} !important;
+}
+body {
+  position: static !important;
 }
 body * {
   color: ${colors.text} !important;
