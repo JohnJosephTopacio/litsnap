@@ -1,11 +1,10 @@
 // Acceptance criteria TERM-1…9 from docs/features/lookup-term.md.
-// RED PHASE: `it.fails` until the implementation PR, which changes only `it.fails` → `it`.
 import { describe, expect, it } from 'vitest';
 import { countWords, displayTerm, MAX_LOOKUP_WORDS, normalise } from './term';
 
 describe('normalise', () => {
   describe("TERM-1: the spec's rules", () => {
-    it.fails.each([
+    it.each([
       ['Hipped-Roof,', 'hipped roof'],
       ['  flying\n\tbuttress  ', 'flying buttress'],
       ['flying\u00A0buttress', 'flying buttress'],
@@ -15,7 +14,7 @@ describe('normalise', () => {
   });
 
   describe('TERM-2: only surrounding punctuation is stripped', () => {
-    it.fails.each([
+    it.each([
       ['“(buttress)!”', 'buttress'],
       ['U.S.', 'u.s'],
       ["o'clock", "o'clock"],
@@ -27,7 +26,7 @@ describe('normalise', () => {
   });
 
   describe('TERM-3: invisible characters are removed', () => {
-    it.fails.each([
+    it.each([
       ['soft hyphen', 'hip\u00ADped'],
       ['zero-width space', 'hip\u200Bped'],
       ['zero-width non-joiner', 'hip\u200Cped'],
@@ -40,14 +39,14 @@ describe('normalise', () => {
   });
 
   describe('TERM-4: Unicode is normalised to NFC, and accents are kept', () => {
-    it.fails('a combining accent and a precomposed \u00E9 give the same term', () => {
+    it('a combining accent and a precomposed \u00E9 give the same term', () => {
       expect(normalise('cafe\u0301')).toBe('caf\u00E9');
       expect(normalise('Caf\u00E9')).toBe('caf\u00E9');
     });
   });
 
   describe('TERM-5: curly quotes become straight', () => {
-    it.fails.each([
+    it.each([
       ['Gatsby’s', "gatsby's"],
       ['Gatsbyʼs', "gatsby's"],
       ['‘tis', 'tis'],
@@ -59,7 +58,7 @@ describe('normalise', () => {
   });
 
   describe('TERM-6: dashes and slashes separate words', () => {
-    it.fails.each([
+    it.each([
       ['roof—and', 'roof and'],
       ['1914–1918', '1914 1918'],
       ['and/or', 'and or'],
@@ -74,7 +73,7 @@ describe('normalise', () => {
   });
 
   describe('TERM-7: nothing left', () => {
-    it.fails.each(['—', '  ', '!?', '\u00AD', ''])('%j → empty', (selection) => {
+    it.each(['—', '  ', '!?', '\u00AD', ''])('%j → empty', (selection) => {
       expect(normalise(selection)).toBe('');
     });
   });
@@ -82,7 +81,7 @@ describe('normalise', () => {
 
 describe('countWords', () => {
   describe('TERM-8: counting words', () => {
-    it.fails.each([
+    it.each([
       ['hipped roof', 2],
       ['roof , and', 2],
       ['', 0],
@@ -92,7 +91,7 @@ describe('countWords', () => {
       expect(countWords(term)).toBe(words);
     });
 
-    it.fails('counts a hyphenated compound as its parts, once normalised', () => {
+    it('counts a hyphenated compound as its parts, once normalised', () => {
       expect(countWords(normalise('mother-in-law'))).toBe(3);
     });
 
@@ -104,7 +103,7 @@ describe('countWords', () => {
 
 describe('displayTerm', () => {
   describe("TERM-9: display term keeps the book's casing", () => {
-    it.fails.each([
+    it.each([
       ['“Hipped-Roof,”', 'Hipped-Roof'],
       ['Mr.\n  Utterson', 'Mr. Utterson'],
       ['hip\u00ADped', 'hipped'],
