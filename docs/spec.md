@@ -117,7 +117,7 @@ Browser (Cloudflare Pages)                    Cloudflare Worker (Hono)
   - Vitest — pure logic (normalisation, lookup chain with mocked fetch, storage).
   - React Testing Library — components (menu, modal).
   - `@cloudflare/vitest-plugin` — Worker.
-  - Playwright — end-to-end flows using committed public-domain fixtures (Gutenberg EPUB, text PDF, scanned PDF, fake DRM file).
+  - Playwright — end-to-end flows against the built app with the production CSP. Fixtures: one committed CC0 book (Standard Ebooks), plus test books generated in memory from the same builder the unit tests use (DRM markers, scripts, hostile metadata, …). PDF fixtures (text and scanned) arrive with M5.
   - Reader-library integration and visual polish may be test-after, covered by Playwright.
 - **Roles:** Claude writes code; the owner reviews and is the only one who merges.
 - **PR flow:** one small branch + PR per feature spec, opened via `gh`. PR descriptions link the spec, map criteria → tests, and include a **"Look closely at"** section. Core logic and Worker use **two PRs** (spec + failing tests → implementation); UI and boilerplate use one.

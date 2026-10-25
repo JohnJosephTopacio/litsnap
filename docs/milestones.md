@@ -2,7 +2,9 @@
 
 Each milestone ends with something working and deployed. See [spec.md](spec.md) for the full product spec.
 
-## M0 — Scaffold & pipeline
+## M0 — Scaffold & pipeline ✅
+
+> Done 2026-10-21 (#1, #2).
 
 - pnpm monorepo: `apps/web`, `apps/worker`, `packages/shared`; TypeScript strict, ESLint, Prettier, Vitest.
 - "Hello" page on Cloudflare Pages, "hello" Worker on Cloudflare Workers.
@@ -10,7 +12,9 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Repo hygiene: branch protection, secret scanning + push protection, Dependabot, `SECURITY.md`, `.gitignore` (incl. `.dev.vars`).
 - **Owner prerequisites:** install `gh` (`winget install GitHub.cli`) and run `gh auth login`; create a Cloudflare account and an API token for CI.
 
-## M1 — EPUB reader
+## M1 — EPUB reader ✅
+
+> Done 2026-10-24 (#3–#16), plus fixes #18 (fixed-layout books open) and #20 (books that position `<body>` no longer render blank). Follow-up: proper fixed-layout support, #19.
 
 - Open an EPUB (foliate-js), table of contents, remember position, font size, theme, paginated/scrolled.
 - Store books and progress in IndexedDB.
