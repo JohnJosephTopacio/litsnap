@@ -158,7 +158,7 @@ describe('sourceSentence', () => {
 
   describe('TERM-16: whitespace and invisible characters from the HTML source', () => {
     it.fails('collapses whitespace and removes soft hyphens', () => {
-      const body = bookBody('<p>\n    The hip­ped\n    roof.\n</p>');
+      const body = bookBody('<p>\n    The hip\u00ADped\n    roof.\n</p>');
       expect(sourceSentence(select(body, 'roof'))).toEqual({
         before: 'The hipped ',
         match: 'roof',

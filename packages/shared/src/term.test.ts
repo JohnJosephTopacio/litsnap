@@ -8,7 +8,7 @@ describe('normalise', () => {
     it.fails.each([
       ['Hipped-Roof,', 'hipped roof'],
       ['  flying\n\tbuttress  ', 'flying buttress'],
-      ['flying buttress', 'flying buttress'],
+      ['flying\u00A0buttress', 'flying buttress'],
     ])('%j → %j', (selection, term) => {
       expect(normalise(selection)).toBe(term);
     });
@@ -28,21 +28,21 @@ describe('normalise', () => {
 
   describe('TERM-3: invisible characters are removed', () => {
     it.fails.each([
-      ['soft hyphen', 'hip­ped'],
-      ['zero-width space', 'hip​ped'],
-      ['zero-width non-joiner', 'hip‌ped'],
-      ['zero-width joiner', 'hip‍ped'],
-      ['word joiner', 'hip⁠ped'],
-      ['byte-order mark', '﻿hipped'],
+      ['soft hyphen', 'hip\u00ADped'],
+      ['zero-width space', 'hip\u200Bped'],
+      ['zero-width non-joiner', 'hip\u200Cped'],
+      ['zero-width joiner', 'hip\u200Dped'],
+      ['word joiner', 'hip\u2060ped'],
+      ['byte-order mark', '\uFEFFhipped'],
     ])('%s', (_name, selection) => {
       expect(normalise(selection)).toBe('hipped');
     });
   });
 
   describe('TERM-4: Unicode is normalised to NFC, and accents are kept', () => {
-    it.fails('a combining accent and a precomposed é give the same term', () => {
-      expect(normalise('café')).toBe('café');
-      expect(normalise('Café')).toBe('café');
+    it.fails('a combining accent and a precomposed \u00E9 give the same term', () => {
+      expect(normalise('cafe\u0301')).toBe('caf\u00E9');
+      expect(normalise('Caf\u00E9')).toBe('caf\u00E9');
     });
   });
 
@@ -63,10 +63,10 @@ describe('normalise', () => {
       ['roof—and', 'roof and'],
       ['1914–1918', '1914 1918'],
       ['and/or', 'and or'],
-      ['mother‐in‐law', 'mother in law'],
-      ['non‑breaking', 'non breaking'],
-      ['figure‒dash', 'figure dash'],
-      ['horizontal―bar', 'horizontal bar'],
+      ['mother\u2010in\u2010law', 'mother in law'],
+      ['non\u2011breaking', 'non breaking'],
+      ['figure\u2012dash', 'figure dash'],
+      ['horizontal\u2015bar', 'horizontal bar'],
       ['—roof—', 'roof'],
     ])('%j → %j', (selection, term) => {
       expect(normalise(selection)).toBe(term);
@@ -74,7 +74,7 @@ describe('normalise', () => {
   });
 
   describe('TERM-7: nothing left', () => {
-    it.fails.each(['—', '  ', '!?', '­', ''])('%j → empty', (selection) => {
+    it.fails.each(['—', '  ', '!?', '\u00AD', ''])('%j → empty', (selection) => {
       expect(normalise(selection)).toBe('');
     });
   });
@@ -107,8 +107,8 @@ describe('displayTerm', () => {
     it.fails.each([
       ['“Hipped-Roof,”', 'Hipped-Roof'],
       ['Mr.\n  Utterson', 'Mr. Utterson'],
-      ['hip­ped', 'hipped'],
-      ['Café', 'Café'],
+      ['hip\u00ADped', 'hipped'],
+      ['Cafe\u0301', 'Caf\u00E9'],
       ['Gatsby’s', 'Gatsby’s'],
     ])('%j → %j', (selection, shown) => {
       expect(displayTerm(selection)).toBe(shown);

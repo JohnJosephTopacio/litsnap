@@ -42,12 +42,12 @@ When it is normalised
 Then the result is `buttress`, `u.s`, `o'clock` or `gatsby's`. Leading and trailing characters that aren't letters or digits are removed; punctuation inside the term is kept. There's no stemming: `roofs` stays `roofs`.
 
 **TERM-3: invisible characters are removed**
-Given a selection containing a soft hyphen (U+00AD), zero-width space (U+200B), zero-width non-joiner or joiner (U+200C, U+200D), word joiner (U+2060) or byte-order mark (U+FEFF), such as `hip­ped`
+Given a selection containing a soft hyphen (U+00AD), zero-width space (U+200B), zero-width non-joiner or joiner (U+200C, U+200D), word joiner (U+2060) or byte-order mark (U+FEFF), such as `hip\u00ADped`
 When it is normalised
 Then those characters are removed: `hipped`. EPUBs often contain soft hyphens for line-breaking. They're invisible but end up in the selection.
 
 **TERM-4: Unicode is normalised to NFC, and accents are kept**
-Given `café` (`e` + combining accent) or `Café` (precomposed `é`)
+Given `cafe\u0301` (`e` + combining accent) or `Café` (precomposed `é`)
 When they are normalised
 Then both become the same string, `café`, with the precomposed `é` (U+00E9).
 
@@ -57,12 +57,12 @@ When they are normalised
 Then the results are `gatsby's` and `tis`. `‘ ’ ʼ` become `'` and `“ ”` become `"` (before stripping, so a leading quote is then removed as punctuation).
 
 **TERM-6: dashes and slashes separate words**
-Given `roof—and`, `1914–1918`, `and/or` or `mother‐in‐law` (U+2010 hyphens)
+Given `roof—and`, `1914–1918`, `and/or` or `mother\u2010in\u2010law` (U+2010 hyphens)
 When they are normalised
 Then the results are `roof and`, `1914 1918`, `and or` and `mother in law`. The hyphen-minus and U+2010–U+2015 (hyphen, non-breaking hyphen, figure dash, en dash, em dash, horizontal bar) are treated like the spec's hyphens, and so is `/`.
 
 **TERM-7: nothing left**
-Given a selection of only punctuation, whitespace or invisible characters (`—`, `"  "`, `!?`, `­`)
+Given a selection of only punctuation, whitespace or invisible characters (`—`, `"  "`, `!?`, `\u00AD`)
 When it is normalised
 Then the result is the empty string.
 
@@ -117,7 +117,7 @@ When the source sentence is found
 Then the block is the `<div>` (the nearest block containing the whole selection), and the result runs from the start of the first sentence to the end of the second one: `{ before: "He saw the ", match: "roof. It was hipped", after: " and old." }`. The paragraph break becomes a space, and `Later.` isn't included. The corrections in TERM-11 and TERM-12 never join sentences across a paragraph break: if the paragraph before ended with `Dr.`, it still isn't included.
 
 **TERM-16: whitespace and invisible characters from the HTML source**
-Given a paragraph whose source text has newlines, indentation and soft hyphens (`<p>\n    The hip­ped\n    roof.\n</p>`)
+Given a paragraph whose source text has newlines, indentation and soft hyphens (`<p>\n    The hip\u00ADped\n    roof.\n</p>`)
 When the source sentence is found
 Then the parts have single spaces and no invisible characters: `The hipped roof.` (with the match wherever it was selected).
 
