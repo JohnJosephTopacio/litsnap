@@ -1,6 +1,6 @@
 # Feature: Lookup term
 
-> Milestone: M2 · Status: proposed · Product spec: [spec.md §4.1–4.2, §5](../spec.md#5-lookup-chain)
+> Milestone: M2 · Status: done · Product spec: [spec.md §4.1–4.2, §5](../spec.md#5-lookup-chain)
 
 ## Goal
 

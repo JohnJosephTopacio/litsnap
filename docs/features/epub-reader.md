@@ -1,6 +1,6 @@
 # Feature: EPUB reader
 
-> Milestone: M1 · Status: proposed · Product spec: [spec.md §3, §6–7](../spec.md#6-reader-features-v1) · Decisions: [0001 vendor foliate-js](../decisions/0001-vendor-foliate-js.md), [0002 CSP](../decisions/0002-csp-for-book-content.md)
+> Milestone: M1 · Status: done · Product spec: [spec.md §3, §6–7](../spec.md#6-reader-features-v1) · Decisions: [0001 vendor foliate-js](../decisions/0001-vendor-foliate-js.md), [0002 CSP](../decisions/0002-csp-for-book-content.md)
 
 ## Goal
 

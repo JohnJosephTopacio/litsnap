@@ -12,9 +12,9 @@ Your books never leave your device: files, reading progress and lookup history a
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 — Scaffold & pipeline           | ✅ Done                                                                                                                                                                                                    |
 | M1 — EPUB reader                   | ✅ Done: open (picker or drag-and-drop), DRM and invalid-file checks, table of contents, page navigation, progress, reopen where you left off, text size, light/dark theme, paginated/scrolled, Terms page |
-| M2 — Selection menu & lookup modal | Next                                                                                                                                                                                                       |
+| M2 — Selection menu & lookup modal | ✅ Done: select 1–6 words → Definition / Image / Both menu (or `D`/`I`/`B`) → a modal with the term, the sentence it came from, S/M/L sizes and a Search Google link                                       |
 
-Word lookups (M2–M4) and PDF (M5) aren't built yet. See [docs/milestones.md](docs/milestones.md) for the roadmap and [docs/spec.md](docs/spec.md) for the product spec.
+Definitions (M3), images (M4) and PDF (M5) aren't built yet: until M3, the modal says they're coming soon. See [docs/milestones.md](docs/milestones.md) for the roadmap and [docs/spec.md](docs/spec.md) for the product spec.
 
 ## How it fits together
 
@@ -34,17 +34,18 @@ Word lookups (M2–M4) and PDF (M5) aren't built yet. See [docs/milestones.md](d
 
 ## Repository layout
 
-| Path                          | What's there                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/reader/`        | The reader UI: `App` → `ReaderScreen` (chrome, panels) → `ReaderView` (foliate wrapper); settings, TOC, file checks |
-| `apps/web/src/storage/`       | IndexedDB: books, progress, settings (`bookStore`), debounced position saving                                       |
-| `apps/web/src/epub/`          | `inspectEpub` (DRM / invalid detection) and the in-memory EPUB builder used by tests                                |
-| `apps/web/config/`            | Build-time code: the CSP, third-party licence notices, the licence check, the HTML-injection lint rule              |
-| `apps/web/e2e/`               | Playwright tests and fixtures                                                                                       |
-| `apps/web/vendor/foliate-js/` | Vendored foliate-js                                                                                                 |
-| `apps/worker/`                | Cloudflare Worker (Hono)                                                                                            |
-| `packages/shared/`            | Types shared by web and Worker                                                                                      |
-| `docs/`                       | Product spec, milestones, feature specs with acceptance criteria, decision records                                  |
+| Path                          | What's there                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/reader/`        | The reader UI: `App` → `ReaderScreen` (chrome, panels) → `ReaderView` (foliate wrapper); settings, TOC, file checks                        |
+| `apps/web/src/lookup/`        | Lookups: normalising the selection and finding its sentence, the selection menu and its placement, the lookup modal and its `LookupClient` |
+| `apps/web/src/storage/`       | IndexedDB: books, progress, settings (`bookStore`), debounced position saving                                                              |
+| `apps/web/src/epub/`          | `inspectEpub` (DRM / invalid detection) and the in-memory EPUB builder used by tests                                                       |
+| `apps/web/config/`            | Build-time code: the CSP, third-party licence notices, the licence check, the HTML-injection lint rule                                     |
+| `apps/web/e2e/`               | Playwright tests and fixtures                                                                                                              |
+| `apps/web/vendor/foliate-js/` | Vendored foliate-js                                                                                                                        |
+| `apps/worker/`                | Cloudflare Worker (Hono)                                                                                                                   |
+| `packages/shared/`            | Code shared by web and Worker: term normalisation (so both normalise alike) and lookup types                                               |
+| `docs/`                       | Product spec, milestones, feature specs with acceptance criteria, decision records                                                         |
 
 ## Development
 
@@ -54,7 +55,7 @@ Requires Node 24 (see `.nvmrc`) and pnpm.
 pnpm install
 pnpm --filter @litsnap/web exec playwright install chromium   # once, for e2e tests
 
-pnpm dev              # web (Vite) + worker (wrangler dev)
+pnpm dev              # web (Vite) + worker (wrangler dev); lookups use sample data (try "hipped roof")
 pnpm check            # format, lint, typecheck, unit tests (what CI runs)
 pnpm check:licenses   # fails on non-permissive production dependencies
 pnpm test:e2e         # Playwright against the built app, with the production CSP

@@ -1,6 +1,6 @@
 # Feature: Terms page
 
-> Milestone: M1 · Status: proposed · Product spec: [spec.md §6](../spec.md#6-reader-features-v1)
+> Milestone: M1 · Status: done · Product spec: [spec.md §6](../spec.md#6-reader-features-v1)
 
 ## Goal
 
