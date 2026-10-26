@@ -8,6 +8,7 @@ import {
   WP_BASS,
   WP_EMPTY_EXTRACT,
   WP_HIP_ROOF,
+  WP_MAIN_PAGE,
   WP_NO_EXTRACT,
 } from '../fixtures/definitions';
 
@@ -41,5 +42,13 @@ describe('DEF-16: no usable summary', () => {
     ['an empty extract', 'roof_plan', WP_EMPTY_EXTRACT],
   ])('%s is not found', async (_name, title, body) => {
     expect(await lookUp(title, body)).toEqual({ status: 'not-found' });
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-16: other page types', () => {
+  it('any type other than standard is not found, even with an extract', async () => {
+    expect(await lookUp('main_page', WP_MAIN_PAGE)).toEqual({ status: 'not-found' });
   });
 });

@@ -7,6 +7,7 @@ import {
   WIKT_HIP_ROOF,
   WIKT_HIP_ROOF_ENTRIES,
   WIKT_HIPPED_ROOF,
+  WIKT_HIPPED_ROOF_WITH_EMPTY_SENSE,
   WIKT_HIPPED_ROOFS,
   WIKT_LEFT,
   WIKT_MANY,
@@ -14,6 +15,8 @@ import {
   WIKT_MARKUP_SENSES,
   WIKT_MIXED_LANGUAGES,
   WIKT_NO_ENGLISH,
+  WIKT_OCLOCK,
+  WIKT_OCLOCK_MISSPELLING,
   WIKT_ROOF,
   WIKT_ROOF_ENTRIES,
   WIKT_ROOFS,
@@ -209,5 +212,34 @@ describe("DEF-12: mixed senses aren't followed", () => {
       }),
     );
     expect(fake.urls()).toEqual([`${WIKTIONARY}left`]);
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-10: more cross-references', () => {
+  it('an empty sense next to the cross-reference does not stop the follow', async () => {
+    const { outcome } = await lookUp('hipped roof', {
+      hipped_roof: json(WIKT_HIPPED_ROOF_WITH_EMPTY_SENSE),
+      hip_roof: json(WIKT_HIP_ROOF),
+    });
+
+    expect(outcome).toMatchObject(found({ note: 'Synonym of hip roof.' }));
+  });
+
+  it("decodes entities in the target's title", async () => {
+    const { outcome } = await lookUp('oclock', {
+      oclock: json(WIKT_OCLOCK_MISSPELLING),
+      "o'clock": json(WIKT_OCLOCK),
+    });
+
+    expect(outcome).toEqual(
+      found({
+        from: 'dictionary',
+        entries: [{ partOfSpeech: 'adverb', senses: ['According to the clock.'] }],
+        note: "Misspelling of o'clock.",
+        source: source("o'clock"),
+      }),
+    );
   });
 });

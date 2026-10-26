@@ -5,7 +5,14 @@ import { DEFAULT_TIMEOUT_MS, type DefinitionProvider } from '../../src/definitio
 import { wikipedia } from '../../src/definitions/wikipedia';
 import { wiktionary } from '../../src/definitions/wiktionary';
 import { fakeFetch, hang, json, networkError, status, text, type Reply } from '../fakeFetch';
-import { DICTIONARY_API, WIKIPEDIA, WIKTIONARY } from '../fixtures/definitions';
+import {
+  DICT_GABLE,
+  DICTIONARY_API,
+  WIKIPEDIA,
+  WIKT_HIP_ROOF,
+  WIKTIONARY,
+  WP_HIP_ROOF,
+} from '../fixtures/definitions';
 
 /** Each provider with its URL for `hipped roof`, and a 200 body that isn't the shape it expects. */
 const PROVIDERS: [string, DefinitionProvider, string, unknown][] = [
@@ -128,5 +135,35 @@ describe("DEF-5: terms that can't be page titles", () => {
 
     expect(outcome).toEqual({ status: 'not-found' });
     expect(fake.urls()).toEqual([]);
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-2: characters that mean something in a URL are encoded', () => {
+  it.each([
+    ['wiktionary', wiktionary, `${WIKTIONARY}who%3Fwhat`],
+    ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}who%3Fwhat`],
+    ['wikipedia', wikipedia, `${WIKIPEDIA}who%3Fwhat`],
+  ] as const)('%s', async (_name, provider, url) => {
+    const fake = fakeFetch({ [url]: status(404) });
+
+    await provider.lookup('who?what', { fetch: fake.fetch, timeoutMs: 1000 });
+
+    expect(fake.urls()).toEqual([url]);
+  });
+});
+
+describe('DEF-4: an error status fails even with a usable body', () => {
+  it.each([
+    ['wiktionary', wiktionary, `${WIKTIONARY}hip_roof`, WIKT_HIP_ROOF],
+    ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}hip%20roof`, DICT_GABLE],
+    ['wikipedia', wikipedia, `${WIKIPEDIA}hip_roof`, WP_HIP_ROOF],
+  ] as const)('%s', async (_name, provider, url, body) => {
+    const fake = fakeFetch({ [url]: json(body, 500) });
+
+    const outcome = await provider.lookup('hip roof', { fetch: fake.fetch, timeoutMs: 1000 });
+
+    expect(outcome).toMatchObject({ status: 'failed' });
   });
 });

@@ -8,6 +8,8 @@ import {
   DICT_MANY,
   DICT_NOT_FOUND,
   DICT_PARTLY_CREDITED,
+  DICT_SOFFIT,
+  DICT_TWO_SOURCES,
   DICT_UNCREDITED,
   DICTIONARY_API,
 } from '../fixtures/definitions';
@@ -67,5 +69,21 @@ describe('DEF-14: attribution, or nothing', () => {
     ['no entries', []],
   ])('%s is not found', async (_name, body) => {
     expect(await lookUp('eave', json(body))).toEqual({ status: 'not-found' });
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-13, DEF-14: more parsing', () => {
+  it('leaves out a part of speech whose senses are all blank', async () => {
+    expect(await lookUp('soffit', json(DICT_SOFFIT))).toMatchObject({
+      definition: { entries: [{ partOfSpeech: 'verb', senses: ['To fit a soffit.'] }] },
+    });
+  });
+
+  it("credits the first entry used, not a later one's page", async () => {
+    expect(await lookUp('eave', json(DICT_TWO_SOURCES))).toMatchObject({
+      definition: { source: { sourceUrl: 'https://en.wiktionary.org/wiki/eave' } },
+    });
   });
 });
