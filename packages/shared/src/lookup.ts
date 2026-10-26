@@ -1,7 +1,8 @@
 // What a lookup asks for and gets back. Spec: docs/spec.md §4–5; docs/features/lookup-modal.md.
 //
-// DRAFT: `LookupResult` is what the M3 Worker's `/lookup` is expected to return. M3 (definitions)
-// and M4 (images) may change it. Network errors and rate limits are thrown, not results.
+// DRAFT: `LookupResult` is what the M3 Worker's `/lookup` is expected to return. Definitions are
+// settled (definition-providers.md); M4 (images) may change the rest. Network errors and rate
+// limits are thrown, not results.
 
 /** The selection menu's three choices (MENU-7). */
 export type LookupKind = 'definition' | 'image' | 'both';
@@ -15,11 +16,7 @@ export interface Attribution {
   sourceUrl: string;
 }
 
-/**
- * A dictionary entry, from Wiktionary or dictionaryapi.dev. Spec:
- * docs/features/definition-providers.md. `DefinitionSection` switches to `FoundDefinition` in the
- * definition-providers implementation PR.
- */
+/** A dictionary entry, from Wiktionary or dictionaryapi.dev (docs/features/definition-providers.md). */
 export interface DictionaryDefinition {
   from: 'dictionary';
   entries: { partOfSpeech: string; senses: string[] }[];
@@ -40,15 +37,7 @@ export interface WikipediaSummary {
 
 export type FoundDefinition = DictionaryDefinition | WikipediaSummary;
 
-export type DefinitionSection =
-  | {
-      status: 'found';
-      /** No dictionary entry: this is a Wikipedia article summary (spec §4.3). */
-      fromWikipedia: boolean;
-      entries: { partOfSpeech: string; senses: string[] }[];
-      source: Attribution;
-    }
-  | { status: 'not-found' };
+export type DefinitionSection = ({ status: 'found' } & FoundDefinition) | { status: 'not-found' };
 
 export interface LookupImage {
   thumbUrl: string;
