@@ -13,6 +13,7 @@ export type {
   ImageSection,
   LookupImage,
   LookupKind,
+  LookupErrorBody,
   LookupResult,
   WikipediaSummary,
 } from './lookup';

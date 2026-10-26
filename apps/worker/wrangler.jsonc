@@ -6,4 +6,10 @@
   "observability": {
     "enabled": true,
   },
+  // One RateLimiter per client IP (lookup-api.md, decision 0004). Free only allows SQLite-backed
+  // Durable Objects, even though this one stores nothing.
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }],
 }

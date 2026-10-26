@@ -1,8 +1,5 @@
-import { Hono } from 'hono';
-import type { HealthResponse } from '@litsnap/shared';
+import { createApp } from './app';
 
-const app = new Hono();
+export { RateLimiter } from './rateLimit';
 
-app.get('/health', (c) => c.json<HealthResponse>({ status: 'ok', service: 'litsnap-worker' }));
-
-export default app;
+export default createApp();
