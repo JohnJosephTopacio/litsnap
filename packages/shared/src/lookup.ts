@@ -15,6 +15,31 @@ export interface Attribution {
   sourceUrl: string;
 }
 
+/**
+ * A dictionary entry, from Wiktionary or dictionaryapi.dev. Spec:
+ * docs/features/definition-providers.md. `DefinitionSection` switches to `FoundDefinition` in the
+ * definition-providers implementation PR.
+ */
+export interface DictionaryDefinition {
+  from: 'dictionary';
+  entries: { partOfSpeech: string; senses: string[] }[];
+  /** The term's own sense when it only pointed to another entry, shown instead (DEF-10). */
+  note?: string;
+  source: Attribution;
+}
+
+/** No dictionary entry: the Wikipedia article's summary (spec §4.3, DEF-15). */
+export interface WikipediaSummary {
+  from: 'wikipedia';
+  /** The article's title, e.g. "Hip roof" for `hipped roof`. */
+  title: string;
+  /** Plain text. */
+  summary: string;
+  source: Attribution;
+}
+
+export type FoundDefinition = DictionaryDefinition | WikipediaSummary;
+
 export type DefinitionSection =
   | {
       status: 'found';

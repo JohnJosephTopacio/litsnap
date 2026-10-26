@@ -8,8 +8,11 @@ export { countWords, displayTerm, MAX_LOOKUP_WORDS, normalise } from './term';
 export type {
   Attribution,
   DefinitionSection,
+  DictionaryDefinition,
+  FoundDefinition,
   ImageSection,
   LookupImage,
   LookupKind,
   LookupResult,
+  WikipediaSummary,
 } from './lookup';
