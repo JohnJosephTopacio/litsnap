@@ -7,6 +7,7 @@ import {
   WIKT_HIP_ROOF,
   WIKT_HIP_ROOF_ENTRIES,
   WIKT_HIPPED_ROOF,
+  WIKT_HIPPED_ROOF_WITH_EMPTY_SENSE,
   WIKT_HIPPED_ROOFS,
   WIKT_LEFT,
   WIKT_MANY,
@@ -14,6 +15,8 @@ import {
   WIKT_MARKUP_SENSES,
   WIKT_MIXED_LANGUAGES,
   WIKT_NO_ENGLISH,
+  WIKT_OCLOCK,
+  WIKT_OCLOCK_MISSPELLING,
   WIKT_ROOF,
   WIKT_ROOF_ENTRIES,
   WIKT_ROOFS,
@@ -39,7 +42,7 @@ const source = (title: string) => ({
 const found = (definition: object) => ({ status: 'found', definition });
 
 describe('DEF-6: English entries only', () => {
-  it.fails('ignores Translingual and other languages', async () => {
+  it('ignores Translingual and other languages', async () => {
     const { outcome } = await lookUp('roof', { roof: json(WIKT_MIXED_LANGUAGES) });
 
     expect(outcome).toEqual(
@@ -51,7 +54,7 @@ describe('DEF-6: English entries only', () => {
     );
   });
 
-  it.fails.each([
+  it.each([
     ['other languages', WIKT_NO_ENGLISH],
     ['Translingual', WIKT_TRANSLINGUAL_ONLY],
     ['an empty response', {}],
@@ -63,22 +66,19 @@ describe('DEF-6: English entries only', () => {
 });
 
 describe('DEF-7: senses become plain text', () => {
-  it.fails(
-    'strips markup, decodes entities, collapses whitespace and drops empty senses',
-    async () => {
-      const { outcome } = await lookUp('roof', { roof: json(WIKT_MARKUP) });
+  it('strips markup, decodes entities, collapses whitespace and drops empty senses', async () => {
+    const { outcome } = await lookUp('roof', { roof: json(WIKT_MARKUP) });
 
-      expect(outcome).toEqual(
-        found({
-          from: 'dictionary',
-          entries: [{ partOfSpeech: 'proper noun', senses: WIKT_MARKUP_SENSES }],
-          source: source('roof'),
-        }),
-      );
-    },
-  );
+    expect(outcome).toEqual(
+      found({
+        from: 'dictionary',
+        entries: [{ partOfSpeech: 'proper noun', senses: WIKT_MARKUP_SENSES }],
+        source: source('roof'),
+      }),
+    );
+  });
 
-  it.fails('leaves out examples and other languages', async () => {
+  it('leaves out examples and other languages', async () => {
     const { outcome } = await lookUp('roof', { roof: json(WIKT_ROOF) });
 
     expect(outcome).toEqual(
@@ -88,7 +88,7 @@ describe('DEF-7: senses become plain text', () => {
 });
 
 describe('DEF-8: limits', () => {
-  it.fails('keeps 3 parts of speech and 5 senses each', async () => {
+  it('keeps 3 parts of speech and 5 senses each', async () => {
     const { outcome } = await lookUp('many', { many: json(WIKT_MANY) });
 
     expect(outcome).toEqual(
@@ -106,7 +106,7 @@ describe('DEF-8: limits', () => {
 });
 
 describe('DEF-9: attribution', () => {
-  it.fails('credits Wiktionary with the page and its licence', async () => {
+  it('credits Wiktionary with the page and its licence', async () => {
     const { outcome } = await lookUp('hip roof', { hip_roof: json(WIKT_HIP_ROOF) });
 
     expect(outcome).toEqual(
@@ -125,7 +125,7 @@ describe('DEF-9: attribution', () => {
 });
 
 describe('DEF-10: a term whose only senses point elsewhere is followed once', () => {
-  it.fails('hipped roof → hip roof', async () => {
+  it('hipped roof → hip roof', async () => {
     const { outcome, fake } = await lookUp('hipped roof', {
       hipped_roof: json(WIKT_HIPPED_ROOF),
       hip_roof: json(WIKT_HIP_ROOF),
@@ -142,7 +142,7 @@ describe('DEF-10: a term whose only senses point elsewhere is followed once', ()
     expect(fake.urls()).toEqual([`${WIKTIONARY}hipped_roof`, `${WIKTIONARY}hip_roof`]);
   });
 
-  it.fails('roofs → roof, with the first letter of the note capitalised', async () => {
+  it('roofs → roof, with the first letter of the note capitalised', async () => {
     const { outcome } = await lookUp('roofs', {
       roofs: json(WIKT_ROOFS),
       roof: json(WIKT_ROOF),
@@ -158,7 +158,7 @@ describe('DEF-10: a term whose only senses point elsewhere is followed once', ()
     );
   });
 
-  it.fails('the target is not followed again', async () => {
+  it('the target is not followed again', async () => {
     const { outcome, fake } = await lookUp('hipped roofs', {
       hipped_roofs: json(WIKT_HIPPED_ROOFS),
       hipped_roof: json(WIKT_HIPPED_ROOF),
@@ -177,7 +177,7 @@ describe('DEF-10: a term whose only senses point elsewhere is followed once', ()
 });
 
 describe("DEF-11: if the target can't be used, the cross-references are shown as they are", () => {
-  it.fails.each([
+  it.each([
     ['is not found', status(404)],
     ['fails', status(503)],
     ['has no English senses', json(WIKT_NO_ENGLISH)],
@@ -198,7 +198,7 @@ describe("DEF-11: if the target can't be used, the cross-references are shown as
 });
 
 describe("DEF-12: mixed senses aren't followed", () => {
-  it.fails('shows every sense, cross-references included, from one request', async () => {
+  it('shows every sense, cross-references included, from one request', async () => {
     const { outcome, fake } = await lookUp('left', { left: json(WIKT_LEFT) });
 
     expect(outcome).toEqual(
@@ -212,5 +212,34 @@ describe("DEF-12: mixed senses aren't followed", () => {
       }),
     );
     expect(fake.urls()).toEqual([`${WIKTIONARY}left`]);
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-10: more cross-references', () => {
+  it('an empty sense next to the cross-reference does not stop the follow', async () => {
+    const { outcome } = await lookUp('hipped roof', {
+      hipped_roof: json(WIKT_HIPPED_ROOF_WITH_EMPTY_SENSE),
+      hip_roof: json(WIKT_HIP_ROOF),
+    });
+
+    expect(outcome).toMatchObject(found({ note: 'Synonym of hip roof.' }));
+  });
+
+  it("decodes entities in the target's title", async () => {
+    const { outcome } = await lookUp('oclock', {
+      oclock: json(WIKT_OCLOCK_MISSPELLING),
+      "o'clock": json(WIKT_OCLOCK),
+    });
+
+    expect(outcome).toEqual(
+      found({
+        from: 'dictionary',
+        entries: [{ partOfSpeech: 'adverb', senses: ['According to the clock.'] }],
+        note: "Misspelling of o'clock.",
+        source: source("o'clock"),
+      }),
+    );
   });
 });

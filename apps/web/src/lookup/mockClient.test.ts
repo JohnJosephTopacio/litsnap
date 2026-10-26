@@ -23,9 +23,9 @@ describe('createMockLookupClient', () => {
 
   it('has a dictionary definition, a Wikipedia one, and none', async () => {
     const found = await lookup(MOCK_TERMS.found, 'definition');
-    expect(found.definition).toMatchObject({ status: 'found', fromWikipedia: false });
+    expect(found.definition).toMatchObject({ status: 'found', from: 'dictionary' });
     const wikipedia = await lookup(MOCK_TERMS.wikipedia, 'definition');
-    expect(wikipedia.definition).toMatchObject({ status: 'found', fromWikipedia: true });
+    expect(wikipedia.definition).toMatchObject({ status: 'found', from: 'wikipedia' });
     const missing = await lookup('zzyzx', 'definition');
     expect(missing).toEqual({ term: 'zzyzx', definition: { status: 'not-found' } });
   });

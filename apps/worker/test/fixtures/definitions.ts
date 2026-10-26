@@ -107,6 +107,25 @@ export const WIKT_LEFT = {
   ],
 };
 
+/** An empty, label-only sense next to a cross-reference: still followed (DEF-7, DEF-10). */
+export const WIKT_HIPPED_ROOF_WITH_EMPTY_SENSE = {
+  en: [english('Noun', [LABEL, crossReference('Synonym of', 'hip roof', '.')])],
+};
+
+/** A cross-reference whose target title has an entity in its `title` attribute (DEF-10). */
+export const WIKT_OCLOCK_MISSPELLING = {
+  en: [
+    english('Noun', [
+      '<span class="form-of-definition use-with-mention">Misspelling of ' +
+        '<span class="form-of-definition-link"><i class="Latn mention" lang="en">' +
+        '<a rel="mw:WikiLink" href="/wiki/o%27clock#English" title="o&#39;clock">o&#39;clock</a>' +
+        '</i></span></span>.',
+    ]),
+  ],
+};
+
+export const WIKT_OCLOCK = { en: [english('Adverb', ['According to the clock.'])] };
+
 export const WIKT_MIXED_LANGUAGES = {
   en: [
     {
@@ -254,6 +273,20 @@ export const DICT_PARTLY_CREDITED = [
 
 export const DICT_UNCREDITED = DICT_PARTLY_CREDITED.slice(0, 2);
 
+/** A part of speech whose only sense is blank (DEF-13). */
+export const DICT_SOFFIT = [
+  dictEntry('soffit', [
+    { partOfSpeech: 'noun', definitions: ['  '] },
+    { partOfSpeech: 'verb', definitions: ['To fit a soffit.'] },
+  ]),
+];
+
+/** Two credited homographs with different source pages: the first one's credit is used (DEF-14). */
+export const DICT_TWO_SOURCES = [
+  dictEntry('eave', [{ partOfSpeech: 'noun', definitions: ['First sense.'] }]),
+  dictEntry('eaves', [{ partOfSpeech: 'noun', definitions: ['Second sense.'] }]),
+];
+
 export const DICT_NOT_FOUND = {
   title: 'No Definitions Found',
   message: 'No definitions for that word.',
@@ -288,3 +321,5 @@ export const WP_BASS = summary('disambiguation', 'Bass', 'Bass may refer to:');
 export const WP_NO_EXTRACT = summary('no-extract', 'Roof plan', '');
 export const WP_EMPTY_EXTRACT = summary('standard', 'Roof plan', '');
 export const WP_NOT_FOUND = { status: 404, type: 'Internal error' };
+/** Any type other than `standard` is not a definition, even with an extract (DEF-16). */
+export const WP_MAIN_PAGE = summary('mainpage', 'Main Page', 'Welcome to the encyclopedia.');

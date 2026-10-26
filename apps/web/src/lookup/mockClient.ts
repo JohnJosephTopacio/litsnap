@@ -19,7 +19,7 @@ const SAMPLE_SOURCE = {
 const DEFINITIONS: Record<string, DefinitionSection> = {
   [MOCK_TERMS.found]: {
     status: 'found',
-    fromWikipedia: false,
+    from: 'dictionary',
     entries: [
       {
         partOfSpeech: 'noun',
@@ -33,15 +33,10 @@ const DEFINITIONS: Record<string, DefinitionSection> = {
   },
   [MOCK_TERMS.wikipedia]: {
     status: 'found',
-    fromWikipedia: true,
-    entries: [
-      {
-        partOfSpeech: 'summary',
-        senses: [
-          'A sloping support that carries the outward push of a high wall or vault across an open space to a pier.',
-        ],
-      },
-    ],
+    from: 'wikipedia',
+    title: 'Flying buttress',
+    summary:
+      'A sloping support that carries the outward push of a high wall or vault across an open space to a pier.',
     source: SAMPLE_SOURCE,
   },
 };

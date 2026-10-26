@@ -8,6 +8,8 @@ import {
   DICT_MANY,
   DICT_NOT_FOUND,
   DICT_PARTLY_CREDITED,
+  DICT_SOFFIT,
+  DICT_TWO_SOURCES,
   DICT_UNCREDITED,
   DICTIONARY_API,
 } from '../fixtures/definitions';
@@ -18,14 +20,14 @@ async function lookUp(term: string, reply: Reply) {
 }
 
 describe('DEF-13: parsing', () => {
-  it.fails('merges homographs by part of speech, in order of first appearance', async () => {
+  it('merges homographs by part of speech, in order of first appearance', async () => {
     expect(await lookUp('gable', json(DICT_GABLE))).toEqual({
       status: 'found',
       definition: DICT_GABLE_DEFINITION,
     });
   });
 
-  it.fails('lowercases parts of speech and keeps 3 of them, with 5 senses each', async () => {
+  it('lowercases parts of speech and keeps 3 of them, with 5 senses each', async () => {
     const outcome = await lookUp('many', json(DICT_MANY));
 
     expect(outcome).toMatchObject({
@@ -40,13 +42,13 @@ describe('DEF-13: parsing', () => {
     });
   });
 
-  it.fails('its 404 body is not found', async () => {
+  it('its 404 body is not found', async () => {
     expect(await lookUp('roof', json(DICT_NOT_FOUND, 404))).toEqual({ status: 'not-found' });
   });
 });
 
 describe('DEF-14: attribution, or nothing', () => {
-  it.fails('skips entries without a licence or a source URL', async () => {
+  it('skips entries without a licence or a source URL', async () => {
     expect(await lookUp('eave', json(DICT_PARTLY_CREDITED))).toEqual({
       status: 'found',
       definition: {
@@ -62,10 +64,26 @@ describe('DEF-14: attribution, or nothing', () => {
     });
   });
 
-  it.fails.each([
+  it.each([
     ['no credited entries', DICT_UNCREDITED],
     ['no entries', []],
   ])('%s is not found', async (_name, body) => {
     expect(await lookUp('eave', json(body))).toEqual({ status: 'not-found' });
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-13, DEF-14: more parsing', () => {
+  it('leaves out a part of speech whose senses are all blank', async () => {
+    expect(await lookUp('soffit', json(DICT_SOFFIT))).toMatchObject({
+      definition: { entries: [{ partOfSpeech: 'verb', senses: ['To fit a soffit.'] }] },
+    });
+  });
+
+  it("credits the first entry used, not a later one's page", async () => {
+    expect(await lookUp('eave', json(DICT_TWO_SOURCES))).toMatchObject({
+      definition: { source: { sourceUrl: 'https://en.wiktionary.org/wiki/eave' } },
+    });
   });
 });

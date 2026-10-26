@@ -8,6 +8,7 @@ import {
   WP_BASS,
   WP_EMPTY_EXTRACT,
   WP_HIP_ROOF,
+  WP_MAIN_PAGE,
   WP_NO_EXTRACT,
 } from '../fixtures/definitions';
 
@@ -17,7 +18,7 @@ async function lookUp(title: string, body: unknown) {
 }
 
 describe('DEF-15: article summary', () => {
-  it.fails("uses the redirect target's title, plain-text extract and page", async () => {
+  it("uses the redirect target's title, plain-text extract and page", async () => {
     expect(await lookUp('hipped_roof', WP_HIP_ROOF)).toEqual({
       status: 'found',
       definition: {
@@ -35,11 +36,19 @@ describe('DEF-15: article summary', () => {
 });
 
 describe('DEF-16: no usable summary', () => {
-  it.fails.each([
+  it.each([
     ['a disambiguation page', 'bass', WP_BASS],
     ['no extract', 'roof_plan', WP_NO_EXTRACT],
     ['an empty extract', 'roof_plan', WP_EMPTY_EXTRACT],
   ])('%s is not found', async (_name, title, body) => {
     expect(await lookUp(title, body)).toEqual({ status: 'not-found' });
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-16: other page types', () => {
+  it('any type other than standard is not found, even with an extract', async () => {
+    expect(await lookUp('main_page', WP_MAIN_PAGE)).toEqual({ status: 'not-found' });
   });
 });

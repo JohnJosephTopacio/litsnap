@@ -156,7 +156,7 @@ describe('LookupModal', () => {
           term: 'x',
           definition: {
             status: 'found',
-            fromWikipedia: false,
+            from: 'dictionary',
             entries: [{ partOfSpeech: 'noun', senses: ['A sense.'] }],
             source: {
               sourceName: 'Evil source',
@@ -173,11 +173,39 @@ describe('LookupModal', () => {
       expect(screen.queryByRole('link', { name: 'Evil licence' })).toBeNull();
     });
 
-    it('labels a Wikipedia summary', async () => {
+    it('labels a Wikipedia summary, and shows it under the article title', async () => {
       renderModal({ term: MOCK_TERMS.wikipedia });
+      const definition = section('Definition');
       expect(
-        await screen.findByText('No dictionary entry. Summary from Wikipedia.'),
+        await within(definition).findByText('No dictionary entry. Summary from Wikipedia.'),
       ).toBeInTheDocument();
+      expect(within(definition).getByRole('heading', { name: 'Flying buttress' })).toBeVisible();
+      expect(within(definition).getByText(/^A sloping support/).tagName).toBe('P');
+      expect(within(definition).queryByRole('list')).toBeNull();
+    });
+
+    it("shows a followed cross-reference's note above the entries (DEF-10)", async () => {
+      const { client, calls } = controlledClient();
+      renderModal({ client });
+      await act(async () => {
+        calls[0]?.resolve({
+          term: 'x',
+          definition: {
+            status: 'found',
+            from: 'dictionary',
+            note: 'Synonym of hip roof.',
+            entries: [{ partOfSpeech: 'noun', senses: ['A roof with no gables.'] }],
+            source: {
+              sourceName: 'Wiktionary',
+              sourceUrl: 'https://en.wiktionary.org/wiki/hip_roof',
+            },
+          },
+        });
+        await Promise.resolve();
+      });
+      const note = within(section('Definition')).getByText('Synonym of hip roof.');
+      const heading = within(section('Definition')).getByRole('heading', { name: 'noun' });
+      expect(note.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
   });
 

@@ -111,11 +111,21 @@ function AttributionLine({ source }: { source: Attribution }) {
 
 function Definition({ definition }: { definition: DefinitionSection | undefined }) {
   if (definition?.status !== 'found') return <p>No definition found.</p>;
+  if (definition.from === 'wikipedia') {
+    return (
+      <>
+        <p className="lookup-note">No dictionary entry. Summary from Wikipedia.</p>
+        <div className="lookup-entry">
+          <h4>{definition.title}</h4>
+          <p>{definition.summary}</p>
+        </div>
+        <AttributionLine source={definition.source} />
+      </>
+    );
+  }
   return (
     <>
-      {definition.fromWikipedia && (
-        <p className="lookup-note">No dictionary entry. Summary from Wikipedia.</p>
-      )}
+      {definition.note && <p className="lookup-note">{definition.note}</p>}
       {definition.entries.map((entry, index) => (
         <div key={index} className="lookup-entry">
           <h4>{entry.partOfSpeech}</h4>

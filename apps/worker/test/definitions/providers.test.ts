@@ -5,7 +5,14 @@ import { DEFAULT_TIMEOUT_MS, type DefinitionProvider } from '../../src/definitio
 import { wikipedia } from '../../src/definitions/wikipedia';
 import { wiktionary } from '../../src/definitions/wiktionary';
 import { fakeFetch, hang, json, networkError, status, text, type Reply } from '../fakeFetch';
-import { DICTIONARY_API, WIKIPEDIA, WIKTIONARY } from '../fixtures/definitions';
+import {
+  DICT_GABLE,
+  DICTIONARY_API,
+  WIKIPEDIA,
+  WIKT_HIP_ROOF,
+  WIKTIONARY,
+  WP_HIP_ROOF,
+} from '../fixtures/definitions';
 
 /** Each provider with its URL for `hipped roof`, and a 200 body that isn't the shape it expects. */
 const PROVIDERS: [string, DefinitionProvider, string, unknown][] = [
@@ -24,7 +31,7 @@ const lookUp = (provider: DefinitionProvider, url: string, reply: Reply, timeout
 
 describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   describe('DEF-1: providers never throw', () => {
-    it.fails('a network error is a failure', async () => {
+    it('a network error is a failure', async () => {
       const { outcome } = lookUp(provider, url, networkError);
 
       expect(await outcome).toMatchObject({ status: 'failed' });
@@ -32,7 +39,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-2: requests identify us', () => {
-    it.fails('sends our User-Agent and asks for JSON, at the documented URL', async () => {
+    it('sends our User-Agent and asks for JSON, at the documented URL', async () => {
       const { fake, outcome } = lookUp(provider, url, status(404));
       await outcome;
 
@@ -45,7 +52,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-3: a slow source times out', () => {
-    it.fails('aborts the request and fails', async () => {
+    it('aborts the request and fails', async () => {
       const { fake, outcome } = lookUp(provider, url, hang, 20);
 
       expect(await outcome).toMatchObject({ status: 'failed' });
@@ -54,23 +61,23 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-4: HTTP statuses', () => {
-    it.fails('404 is not found', async () => {
+    it('404 is not found', async () => {
       expect(await lookUp(provider, url, status(404)).outcome).toEqual({ status: 'not-found' });
     });
 
-    it.fails.each([429, 500, 503])('%i is a failure', async (code) => {
+    it.each([429, 500, 503])('%i is a failure', async (code) => {
       expect(await lookUp(provider, url, status(code)).outcome).toMatchObject({
         status: 'failed',
       });
     });
 
-    it.fails('a body that is not JSON is a failure', async () => {
+    it('a body that is not JSON is a failure', async () => {
       expect(await lookUp(provider, url, text('<html>Oops</html>')).outcome).toMatchObject({
         status: 'failed',
       });
     });
 
-    it.fails('JSON of the wrong shape is a failure', async () => {
+    it('JSON of the wrong shape is a failure', async () => {
       expect(await lookUp(provider, url, json(wrongShape)).outcome).toMatchObject({
         status: 'failed',
       });
@@ -79,7 +86,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
 });
 
 describe('DEF-2: terms are percent-encoded', () => {
-  it.fails.each([
+  it.each([
     ['wiktionary', wiktionary, `${WIKTIONARY}caf%C3%A9_au_lait`],
     ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}caf%C3%A9%20au%20lait`],
     ['wikipedia', wikipedia, `${WIKIPEDIA}caf%C3%A9_au_lait`],
@@ -99,14 +106,14 @@ describe('DEF-3: the production timeout', () => {
 });
 
 describe('DEF-4: 400 from Wikimedia is an invalid title', () => {
-  it.fails.each(PROVIDERS.filter(([, provider]) => provider !== dictionaryApi))(
+  it.each(PROVIDERS.filter(([, provider]) => provider !== dictionaryApi))(
     '%s: not found',
     async (_name, provider, url) => {
       expect(await lookUp(provider, url, status(400)).outcome).toEqual({ status: 'not-found' });
     },
   );
 
-  it.fails('dictionaryapi.dev: 400 is a failure', async () => {
+  it('dictionaryapi.dev: 400 is a failure', async () => {
     const url = `${DICTIONARY_API}hipped%20roof`;
     expect(await lookUp(dictionaryApi, url, status(400)).outcome).toMatchObject({
       status: 'failed',
@@ -115,7 +122,7 @@ describe('DEF-4: 400 from Wikimedia is an invalid title', () => {
 });
 
 describe("DEF-5: terms that can't be page titles", () => {
-  it.fails.each(
+  it.each(
     [wiktionary, wikipedia].flatMap((provider) =>
       ['a#b', 'a<b', 'a>b', 'a[b', 'a]b', 'a{b', 'a}b', 'a|b'].map(
         (term) => [provider.name, provider, term] as const,
@@ -128,5 +135,35 @@ describe("DEF-5: terms that can't be page titles", () => {
 
     expect(outcome).toEqual({ status: 'not-found' });
     expect(fake.urls()).toEqual([]);
+  });
+});
+
+// Added by the implementation PR's mutation checks.
+
+describe('DEF-2: characters that mean something in a URL are encoded', () => {
+  it.each([
+    ['wiktionary', wiktionary, `${WIKTIONARY}who%3Fwhat`],
+    ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}who%3Fwhat`],
+    ['wikipedia', wikipedia, `${WIKIPEDIA}who%3Fwhat`],
+  ] as const)('%s', async (_name, provider, url) => {
+    const fake = fakeFetch({ [url]: status(404) });
+
+    await provider.lookup('who?what', { fetch: fake.fetch, timeoutMs: 1000 });
+
+    expect(fake.urls()).toEqual([url]);
+  });
+});
+
+describe('DEF-4: an error status fails even with a usable body', () => {
+  it.each([
+    ['wiktionary', wiktionary, `${WIKTIONARY}hip_roof`, WIKT_HIP_ROOF],
+    ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}hip%20roof`, DICT_GABLE],
+    ['wikipedia', wikipedia, `${WIKIPEDIA}hip_roof`, WP_HIP_ROOF],
+  ] as const)('%s', async (_name, provider, url, body) => {
+    const fake = fakeFetch({ [url]: json(body, 500) });
+
+    const outcome = await provider.lookup('hip roof', { fetch: fake.fetch, timeoutMs: 1000 });
+
+    expect(outcome).toMatchObject({ status: 'failed' });
   });
 });

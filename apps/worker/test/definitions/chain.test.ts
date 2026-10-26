@@ -66,7 +66,7 @@ function withUpstreams(term: string, replies: { wikt: Reply; dict: Reply; wp: Re
 }
 
 describe('DEF-17: first found wins', () => {
-  it.fails('Wiktionary finds it: nothing else is asked', async () => {
+  it('Wiktionary finds it: nothing else is asked', async () => {
     const { fake, outcome } = withUpstreams('roof', {
       wikt: json(WIKT_ROOF),
       dict: json(DICT_GABLE),
@@ -80,7 +80,7 @@ describe('DEF-17: first found wins', () => {
     expect(fake.urls()).toEqual([`${WIKTIONARY}roof`]);
   });
 
-  it.fails('stops at the first provider that finds it', async () => {
+  it('stops at the first provider that finds it', async () => {
     const first = provider('wiktionary', NOT_FOUND);
     const second = provider('dictionaryapi', FOUND);
     const third = provider('wikipedia', FOUND);
@@ -91,7 +91,7 @@ describe('DEF-17: first found wins', () => {
 });
 
 describe('DEF-18: not-found and failed both fall through', () => {
-  it.fails.each([
+  it.each([
     ['not found', status(404)],
     ['fails', status(500)],
   ])('Wiktionary %s: dictionaryapi.dev is asked', async (_name, wikt) => {
@@ -105,7 +105,7 @@ describe('DEF-18: not-found and failed both fall through', () => {
     expect(fake.urls()).toEqual([`${WIKTIONARY}gable`, `${DICTIONARY_API}gable`]);
   });
 
-  it.fails('no dictionary has it: Wikipedia is asked last', async () => {
+  it('no dictionary has it: Wikipedia is asked last', async () => {
     const { fake, outcome } = withUpstreams('hipped roof', {
       wikt: status(404),
       dict: status(503),
@@ -123,7 +123,7 @@ describe('DEF-18: not-found and failed both fall through', () => {
     ]);
   });
 
-  it.fails('asks one provider at a time', async () => {
+  it('asks one provider at a time', async () => {
     let answerFirst: (outcome: ProviderOutcome) => void = () => {};
     const first = provider(
       'wiktionary',
@@ -146,7 +146,7 @@ describe('DEF-18: not-found and failed both fall through', () => {
 });
 
 describe('DEF-19: nothing found', () => {
-  it.fails('every provider said not found: not found', async () => {
+  it('every provider said not found: not found', async () => {
     const { outcome } = withUpstreams('xyzzy', {
       wikt: status(404),
       dict: status(404),
@@ -156,7 +156,7 @@ describe('DEF-19: nothing found', () => {
     expect(await outcome).toEqual({ status: 'not-found' });
   });
 
-  it.fails.each([
+  it.each([
     ['the first', FAILED, NOT_FOUND, NOT_FOUND],
     ['the last', NOT_FOUND, NOT_FOUND, FAILED],
     ['every', FAILED, FAILED, FAILED],

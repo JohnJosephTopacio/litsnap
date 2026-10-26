@@ -56,7 +56,7 @@ Then each section shows _"Loading…"_ and has `aria-busy="true"` until the resu
 
 **MODAL-7: definition found**
 Given the result has a definition
-Then the Definition section lists each entry's part of speech with its senses as a numbered list, followed by the attribution line _"From {source}"_, linked to the source page, plus the licence when there is one (spec §4.3). A definition that came from Wikipedia (no dictionary entry) is labelled _"No dictionary entry. Summary from Wikipedia."_
+Then the Definition section lists each entry's part of speech with its senses as a numbered list, followed by the attribution line _"From {source}"_, linked to the source page, plus the licence when there is one (spec §4.3). A definition that came from Wikipedia (no dictionary entry) is labelled _"No dictionary entry. Summary from Wikipedia."_ and shows the article's title as a heading with the summary as a paragraph. When the dictionary followed a cross-reference, its note (_"Synonym of hip roof."_) comes before the entries ([definition-providers.md](definition-providers.md), DEF-10).
 
 **MODAL-8: definition not found**
 Given the result has no definition
