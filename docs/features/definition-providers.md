@@ -1,6 +1,6 @@
 # Feature: Definition providers
 
-> Milestone: M3 · Status: spec + failing tests · Product spec: [spec.md §4.3, §5](../spec.md#5-lookup-chain)
+> Milestone: M3 · Status: done (#27, #28) · Product spec: [spec.md §4.3, §5](../spec.md#5-lookup-chain)
 
 ## Goal
 
@@ -58,7 +58,7 @@ interface WikipediaSummary {
 }
 ```
 
-In the implementation PR, `DefinitionSection` becomes `({ status: 'found' } & FoundDefinition) | { status: 'not-found' }`, and the modal changes with it: it shows the `note` above the entries and renders a summary as a paragraph under the article title. MODAL-7's wording (_"No dictionary entry. Summary from Wikipedia."_) is unchanged.
+`DefinitionSection` is `({ status: 'found' } & FoundDefinition) | { status: 'not-found' }`. The modal shows the `note` above the entries and renders a summary as a paragraph under the article title (MODAL-7). MODAL-7's wording (_"No dictionary entry. Summary from Wikipedia."_) is unchanged.
 
 ## Acceptance criteria
 
@@ -157,7 +157,7 @@ When it's parsed
 Then the result is `{ from: 'wikipedia', title, summary: extract, source: { sourceName: 'Wikipedia', sourceUrl: content_urls.desktop.page, licence: 'CC BY-SA 4.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/4.0/' } }`. `extract` is already plain text, so `extract_html` isn't used.
 
 **DEF-16: no usable summary**
-Given a summary whose `type` is `"disambiguation"` (e.g. _Bass_: _"Bass or Basses may refer to:"_) or `"no-extract"`, or whose `extract` is empty
+Given a summary whose `type` isn't `"standard"`, such as `"disambiguation"` (e.g. _Bass_: _"Bass or Basses may refer to:"_), `"no-extract"` or `"mainpage"`, or whose `extract` is empty
 Then the result is `not-found`. A list of other articles isn't a definition.
 
 ### The chain
