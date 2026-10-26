@@ -2,8 +2,9 @@
 // Node, not jsdom: fake-indexeddb clones values with Node's structuredClone, which turns jsdom's
 // Blob into a plain object. Node's own Blob round-trips correctly, as real browsers' do.
 //
-// Acceptance criteria STO-1…8 and STO-11…14 from docs/features/book-storage.md.
+// Acceptance criteria STO-1…8 and STO-11…15 from docs/features/book-storage.md.
 import 'fake-indexeddb/auto';
+import { openDB } from 'idb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   bookId,
@@ -256,6 +257,7 @@ describe('openBookStore', () => {
         fontSize: 100,
         layout: 'paginated',
         theme: undefined,
+        lookupSize: 'm',
       });
     });
   });
@@ -290,6 +292,7 @@ describe('openBookStore', () => {
         fontSize: 100,
         theme: 'dark',
         layout: 'scrolled',
+        lookupSize: 'm',
       });
     });
 
@@ -299,6 +302,34 @@ describe('openBookStore', () => {
       await store.updateSettings({ theme: undefined });
 
       expect((await store.getSettings()).theme).toBeUndefined();
+    });
+  });
+
+  describe('STO-15: lookup size', () => {
+    it("is 'm' by default", async () => {
+      const store = await open();
+      expect((await store.getSettings()).lookupSize).toBe('m');
+    });
+
+    it("reads anything other than 's', 'm' or 'l' as 'm'", async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      (await openBookStore({ name, now, storage: null })).close();
+      const raw = await openDB(name);
+      await raw.put('settings', 'huge', 'lookupSize');
+      raw.close();
+
+      const store = await openBookStore({ name, now, storage: null });
+      expect((await store.getSettings()).lookupSize).toBe('m');
+    });
+
+    it('persists a choice across sessions', async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      const first = await openBookStore({ name, now, storage: null });
+      expect((await first.updateSettings({ lookupSize: 'l' })).lookupSize).toBe('l');
+      first.close();
+
+      const second = await openBookStore({ name, now, storage: null });
+      expect((await second.getSettings()).lookupSize).toBe('l');
     });
   });
 });

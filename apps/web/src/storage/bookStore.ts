@@ -4,6 +4,8 @@ import { openDB, type DBSchema } from 'idb';
 
 export type Theme = 'light' | 'dark';
 export type Layout = 'paginated' | 'scrolled';
+/** The lookup modal's width: Small, Medium, Large (lookup-modal MODAL-12). */
+export type LookupSize = 's' | 'm' | 'l';
 
 export interface Settings {
   /** Percent, 80–200 in steps of 10. */
@@ -11,6 +13,7 @@ export interface Settings {
   /** `undefined` = follow the OS (`prefers-color-scheme`). */
   theme: Theme | undefined;
   layout: Layout;
+  lookupSize: LookupSize;
 }
 
 export interface Position {
@@ -85,11 +88,16 @@ export class StorageFullError extends Error {
 interface LitsnapDB extends DBSchema {
   books: { key: string; value: StoredBook };
   progress: { key: string; value: StoredProgress };
-  // Key/value pairs: `fontSize`, `theme`, `layout`, `currentBookId`.
+  // Key/value pairs: `fontSize`, `theme`, `layout`, `lookupSize`, `currentBookId`.
   settings: { key: string; value: unknown };
 }
 
-const DEFAULT_SETTINGS: Settings = { fontSize: 100, theme: undefined, layout: 'paginated' };
+const DEFAULT_SETTINGS: Settings = {
+  fontSize: 100,
+  theme: undefined,
+  layout: 'paginated',
+  lookupSize: 'm',
+};
 
 /** 80–200, rounded to the nearest 10. */
 const clampFontSize = (size: number) => Math.min(200, Math.max(80, Math.round(size / 10) * 10));
@@ -143,6 +151,7 @@ export async function openBookStore(options: BookStoreOptions = {}): Promise<Boo
       fontSize: typeof fontSize === 'number' ? clampFontSize(fontSize) : DEFAULT_SETTINGS.fontSize,
       theme: theme === 'light' || theme === 'dark' ? theme : DEFAULT_SETTINGS.theme,
       layout: layout === 'paginated' || layout === 'scrolled' ? layout : DEFAULT_SETTINGS.layout,
+      lookupSize: DEFAULT_SETTINGS.lookupSize, // RED: not stored yet
     };
   }
 
