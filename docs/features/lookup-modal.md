@@ -1,6 +1,6 @@
 # Feature: Lookup modal
 
-> Milestone: M2 · Status: proposed · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
+> Milestone: M2 · Status: done · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
 
 ## Goal
 

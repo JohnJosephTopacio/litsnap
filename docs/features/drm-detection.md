@@ -1,6 +1,6 @@
 # Feature: DRM detection
 
-> Milestone: M1 · Status: proposed · Product spec: [spec.md §3](../spec.md#3-supported-files)
+> Milestone: M1 · Status: done · Product spec: [spec.md §3](../spec.md#3-supported-files)
 
 ## Goal
 

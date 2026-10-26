@@ -23,15 +23,19 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Terms page (moved up from M6, since the reader goes public when M1 merges), third-party licence notices, and a CI licence check.
 - Specs: [drm-detection](features/drm-detection.md), [book-storage](features/book-storage.md), [epub-reader](features/epub-reader.md), [terms-page](features/terms-page.md).
 
-## M2 — Selection menu & lookup modal (mock data)
+## M2 — Selection menu & lookup modal (mock data) ✅
+
+> Done 2026-10-26 (#22–#25). Specs: [lookup-term](features/lookup-term.md), [selection-menu](features/selection-menu.md), [lookup-modal](features/lookup-modal.md).
 
 - 1–6 word selection → vertical menu (Definition / Image / Both), `D`/`I`/`B` shortcuts.
 - Centred modal over dimmed page, S/M/L sizes, `Esc`/click-away, focus trap, source sentence.
 - Normalisation logic (TDD).
-- Specs, in this order: [lookup-term](features/lookup-term.md) (normalisation, word count, source sentence), then selection-menu, then lookup-modal.
 - **Until M3:** the deployed modal shows the term, the source sentence and the real _Search Google ↗_ link, plus _"Definitions and images are coming soon."_. Mock definitions are only used in `pnpm dev` and tests, so nobody sees made-up content.
+- Follow-ups, not started: lookups in fixed-layout books (#19); our own highlight under the modal, if the browser's greyed selection proves hard to see (lookup-modal "Out of scope"); Shift + arrow keys still turn pages instead of extending a selection (selection-menu "Out of scope").
 
 ## M3 — Worker + definitions
+
+> Ready for M3: the modal gets its content from a `LookupClient` (`apps/web/src/lookup/client.ts`). Today `defaultLookupClient` is `undefined` in production ("coming soon") and a mock in `pnpm dev`; M3 replaces it with a client for the Worker. The Worker should re-normalise with `normalise()` from `packages/shared`, and return the draft `LookupResult` there (changing it if needed). The modal's definition section, loading, "not found", error and Retry states are already built and tested against the mock.
 
 - Hono Worker with `/lookup`, provider interface, Wiktionary → dictionaryapi.dev → Wikipedia summary.
 - Cache (30 days) and rate limit (~30/min/IP).

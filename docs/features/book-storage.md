@@ -1,6 +1,6 @@
 # Feature: Book storage
 
-> Milestone: M1 · Status: proposed · Product spec: [spec.md §6–7](../spec.md#7-privacy--data)
+> Milestone: M1 · Status: done · Product spec: [spec.md §6–7](../spec.md#7-privacy--data)
 
 ## Goal
 

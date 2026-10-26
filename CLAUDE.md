@@ -25,7 +25,7 @@ Run from the repo root:
 
 Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vitest-plugin` (not the deprecated `vitest-pool-workers`). TypeScript is pinned to 6.0 until `typescript-eslint` supports 7. Packages with install scripts must be allow-listed under `allowBuilds` in `pnpm-workspace.yaml`.
 
-## Codebase notes (learned in M1)
+## Codebase notes (learned in M1–M2)
 
 The README has the repository layout. Things that aren't obvious from reading the code:
 
@@ -39,6 +39,13 @@ The README has the repository layout. Things that aren't obvious from reading th
 - **CI is slower than local** and exposes timing races. When a Playwright test fails in CI, download its report (`gh run download <run> -n playwright-report`) and read the trace and error context before guessing.
 - **Unit tests that use IndexedDB or `Blob` contents** run with `// @vitest-environment node`: fake-indexeddb turns jsdom's `Blob` into a plain object. DOM-free tests use node too.
 - **Temporary probe specs** (`e2e/probe-*.spec.ts`) are for local diagnosis only: delete them and never commit them. Check that `apps/web/undefined/` doesn't exist before committing (screenshots from a probe run without `SHOT_DIR`).
+- **Lookup flow (M2):** `ReaderView` feeds each book document's `pointerdown`/`pointerup`/`pointercancel`/`selectionchange` and foliate's `relocate` into `createSelectionWatcher` (when), turns a qualifying selection into a `BookSelection` in **our page's** coordinates (the iframe's offset is added), and `ReaderScreen` shows `SelectionMenu` (placed by the pure `placeMenu`) and then `LookupModal`, which gets content from a `LookupClient` (none in production until M3, a mock in dev).
+- **Never `instanceof` on book nodes.** Nodes from the book's iframe are another realm's `Text`/`Element`, so `instanceof` is always false: check `nodeType` (this broke `sourceSentence` until #25). Unit tests only catch it with a document from a real second realm: parse with the iframe's own `DOMParser` (see `sourceSentence.test.ts`).
+- **foliate moves the book because of selections:** it turns the page when a mouse drag passes the page edge, and scrolls to follow keyboard selections, both firing `relocate`. So the menu hides on `relocate` and comes back after the book settles, if the selection is still on screen (MENU-10). Pressing on already-selected text drags it and fires `pointercancel`, not `pointerup`.
+- **Native `<dialog>` (the lookup modal):** jsdom has no `showModal()` (a stand-in lives in `test-setup.ts`), so test `Esc`, the backdrop and inertness in Playwright. A press inside that ends on the backdrop is a click on the `<dialog>`, so close only if the press started there too. `Tab` can leave a modal for the browser's toolbar (`activeElement` = `<body>`); that's normal. Browser styles cap a dialog's `max-width`.
+- **Selecting text in e2e tests:** `e2e/selection.ts` (`dragSelect`, `scriptSelect`, `textBoxes`). Code sent into a book frame with `frame.evaluate` must be one self-contained function: the book's CSP blocks `eval`/`new Function`. A drag that starts on selected text drags the text instead, so clear the selection first (`clearSelection`).
+- **Running mutation checks:** apply each mutation as a literal string replacement, run the relevant tests, restore. E2E mutations rebuild the app each time (~25 s), so run a batch in the background. If a mutation survives, either add the missing test or delete the code it proves useless (M2 removed a resize listener this way).
+- **Tool gotchas on this machine:** the file-writing tools turn `\u00AD`-style escapes into the real (invisible) characters, so write escapes with a script (backslash from `String.fromCharCode(92)`). Git Bash rewrites arguments starting with `/` (`"</p>"`) into Windows paths: prefix the command with `MSYS_NO_PATHCONV=1`.
 - **Issue references in commits:** GitHub closes an issue when a merged commit says e.g. `fix: … #17`. If the issue must stay open, keep its number out of `fix:` commit messages and write "Part of #N" only in the PR body.
 
 ## How we work

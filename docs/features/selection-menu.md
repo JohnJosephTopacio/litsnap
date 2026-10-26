@@ -1,6 +1,6 @@
 # Feature: Selection menu
 
-> Milestone: M2 · Status: proposed · Product spec: [spec.md §4.1](../spec.md#41-selection--menu)
+> Milestone: M2 · Status: done · Product spec: [spec.md §4.1](../spec.md#41-selection--menu)
 
 ## Goal
 

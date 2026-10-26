@@ -4,12 +4,15 @@
 
 Every other test book is built in memory by [`../fixtures.ts`](../fixtures.ts), from the same builder the unit tests use (`src/epub/testing/buildEpub.ts`). That way each test shows exactly what its book contains, and there are no binary files to review:
 
-| Fixture                                                                 | For                                            |
-| ----------------------------------------------------------------------- | ---------------------------------------------- |
-| `scriptedEpub`, `remoteImageEpub`, `hostileTitleEpub`, `hostileTocEpub` | Security: RD-21, RD-22, RD-24                  |
-| `fakeDrmEpub`, `corruptEpub`, `pdfFile`, `textFile`, `secondEpub`       | Opening: RD-2…7                                |
-| `colouredEpub`, `footnoteEpub`, `linksEpub`                             | Themes, footnotes, links: RD-17, RD-19, RD-20  |
-| `fixedLayoutEpub`                                                       | Fixed-layout books: RD-27, RD-28               |
-| `positionedBodyEpub`                                                    | Pages that absolutely position `<body>`: RD-29 |
+| Fixture                                                                 | For                                                                                                          |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `scriptedEpub`, `remoteImageEpub`, `hostileTitleEpub`, `hostileTocEpub` | Security: RD-21, RD-22, RD-24                                                                                |
+| `fakeDrmEpub`, `corruptEpub`, `pdfFile`, `textFile`, `secondEpub`       | Opening: RD-2…7                                                                                              |
+| `colouredEpub`, `footnoteEpub`, `linksEpub`                             | Themes, footnotes, links: RD-17, RD-19, RD-20                                                                |
+| `fixedLayoutEpub`                                                       | Fixed-layout books: RD-27, RD-28                                                                             |
+| `positionedBodyEpub`                                                    | Pages that absolutely position `<body>`: RD-29                                                               |
+| `lookupEpub`                                                            | Selection menu and lookup modal: short and 10-word sentences, and markup that is only text (MENU-_, MODAL-_) |
+
+To select text in a book like a reader would (a real mouse drag, or a script selection with no pointer), use the helpers in [`../selection.ts`](../selection.ts): `dragSelect`, `scriptSelect`, `textBoxes`.
 
 **Never commit a book you don't have the right to redistribute.** To reproduce a problem found in a real book, copy just the structure that triggers it (markup and CSS) into a generated fixture, as `positionedBodyEpub` does.
