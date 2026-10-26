@@ -60,3 +60,8 @@ export interface LookupResult {
   /** Present when the kind was `'image'` or `'both'`. */
   images?: ImageSection;
 }
+
+/** The body of a `/lookup` error response (docs/features/lookup-api.md). */
+export interface LookupErrorBody {
+  error: 'invalid-request' | 'rate-limited' | 'upstream-failed';
+}
