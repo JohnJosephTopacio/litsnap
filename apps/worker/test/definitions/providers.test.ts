@@ -24,7 +24,7 @@ const lookUp = (provider: DefinitionProvider, url: string, reply: Reply, timeout
 
 describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   describe('DEF-1: providers never throw', () => {
-    it.fails('a network error is a failure', async () => {
+    it('a network error is a failure', async () => {
       const { outcome } = lookUp(provider, url, networkError);
 
       expect(await outcome).toMatchObject({ status: 'failed' });
@@ -32,7 +32,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-2: requests identify us', () => {
-    it.fails('sends our User-Agent and asks for JSON, at the documented URL', async () => {
+    it('sends our User-Agent and asks for JSON, at the documented URL', async () => {
       const { fake, outcome } = lookUp(provider, url, status(404));
       await outcome;
 
@@ -45,7 +45,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-3: a slow source times out', () => {
-    it.fails('aborts the request and fails', async () => {
+    it('aborts the request and fails', async () => {
       const { fake, outcome } = lookUp(provider, url, hang, 20);
 
       expect(await outcome).toMatchObject({ status: 'failed' });
@@ -54,23 +54,23 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
   });
 
   describe('DEF-4: HTTP statuses', () => {
-    it.fails('404 is not found', async () => {
+    it('404 is not found', async () => {
       expect(await lookUp(provider, url, status(404)).outcome).toEqual({ status: 'not-found' });
     });
 
-    it.fails.each([429, 500, 503])('%i is a failure', async (code) => {
+    it.each([429, 500, 503])('%i is a failure', async (code) => {
       expect(await lookUp(provider, url, status(code)).outcome).toMatchObject({
         status: 'failed',
       });
     });
 
-    it.fails('a body that is not JSON is a failure', async () => {
+    it('a body that is not JSON is a failure', async () => {
       expect(await lookUp(provider, url, text('<html>Oops</html>')).outcome).toMatchObject({
         status: 'failed',
       });
     });
 
-    it.fails('JSON of the wrong shape is a failure', async () => {
+    it('JSON of the wrong shape is a failure', async () => {
       expect(await lookUp(provider, url, json(wrongShape)).outcome).toMatchObject({
         status: 'failed',
       });
@@ -79,7 +79,7 @@ describe.each(PROVIDERS)('%s', (_name, provider, url, wrongShape) => {
 });
 
 describe('DEF-2: terms are percent-encoded', () => {
-  it.fails.each([
+  it.each([
     ['wiktionary', wiktionary, `${WIKTIONARY}caf%C3%A9_au_lait`],
     ['dictionaryapi', dictionaryApi, `${DICTIONARY_API}caf%C3%A9%20au%20lait`],
     ['wikipedia', wikipedia, `${WIKIPEDIA}caf%C3%A9_au_lait`],
@@ -99,14 +99,14 @@ describe('DEF-3: the production timeout', () => {
 });
 
 describe('DEF-4: 400 from Wikimedia is an invalid title', () => {
-  it.fails.each(PROVIDERS.filter(([, provider]) => provider !== dictionaryApi))(
+  it.each(PROVIDERS.filter(([, provider]) => provider !== dictionaryApi))(
     '%s: not found',
     async (_name, provider, url) => {
       expect(await lookUp(provider, url, status(400)).outcome).toEqual({ status: 'not-found' });
     },
   );
 
-  it.fails('dictionaryapi.dev: 400 is a failure', async () => {
+  it('dictionaryapi.dev: 400 is a failure', async () => {
     const url = `${DICTIONARY_API}hipped%20roof`;
     expect(await lookUp(dictionaryApi, url, status(400)).outcome).toMatchObject({
       status: 'failed',
@@ -115,7 +115,7 @@ describe('DEF-4: 400 from Wikimedia is an invalid title', () => {
 });
 
 describe("DEF-5: terms that can't be page titles", () => {
-  it.fails.each(
+  it.each(
     [wiktionary, wikipedia].flatMap((provider) =>
       ['a#b', 'a<b', 'a>b', 'a[b', 'a]b', 'a{b', 'a}b', 'a|b'].map(
         (term) => [provider.name, provider, term] as const,

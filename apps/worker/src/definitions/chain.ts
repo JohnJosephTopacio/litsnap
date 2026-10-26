@@ -12,10 +12,18 @@ export const DEFINITION_PROVIDERS: readonly DefinitionProvider[] = [
   wikipedia,
 ];
 
-// RED PHASE: stub until the implementation PR.
-export const lookupDefinition: (
+/** Asks each provider in turn (DEF-17, DEF-18). A failure may have hidden an entry (DEF-19). */
+export async function lookupDefinition(
   term: string,
   context: ProviderContext,
-  providers?: readonly DefinitionProvider[],
-) => Promise<ProviderOutcome> = () =>
-  Promise.reject(new Error('lookupDefinition is not implemented yet'));
+  providers: readonly DefinitionProvider[] = DEFINITION_PROVIDERS,
+): Promise<ProviderOutcome> {
+  let failure: ProviderOutcome | undefined;
+  for (const provider of providers) {
+    const outcome = await provider.lookup(term, context);
+    if (outcome.status === 'found') return outcome;
+    if (outcome.status === 'failed')
+      failure ??= { status: 'failed', reason: `${provider.name}: ${outcome.reason}` };
+  }
+  return failure ?? { status: 'not-found' };
+}
