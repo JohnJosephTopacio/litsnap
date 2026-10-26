@@ -4,19 +4,9 @@
 
 ## Goal
 
-When the reader selects 1–6 words in a book, a small vertical menu appears next to the selection: **Definition**, **Image**, **Both**. Choosing one opens the lookup modal (`lookup-modal.md`, the next M2 PR). This spec covers when the menu appears, where it goes, how it's used from the keyboard, and when it goes away.
+When the reader selects 1–6 words in a book, a small vertical menu appears next to the selection: **Definition**, **Image**, **Both**. Choosing one opens the lookup modal ([lookup-modal.md](lookup-modal.md)). This spec covers when the menu appears, where it goes, how it's used from the keyboard, and when it goes away.
 
 Word counting uses `countWords(normalise(text))` from [lookup-term.md](lookup-term.md) (TERM-8).
-
-## Temporary: off in production until the modal lands
-
-Choosing an item will open the lookup modal, which arrives in the next PR. Until then the menu would do nothing, so it's behind a flag:
-
-- on in `pnpm dev`
-- on in any build when `localStorage['litsnap:lookups-preview']` is `'on'`. Playwright sets this before each page loads, so the end-to-end tests run against the real production build.
-- off otherwise: production shows no menu
-
-Until the modal lands, choosing an item just closes the menu. The lookup-modal PR removes the flag (`apps/web/src/lookup/preview.ts`) and the criterion MENU-15.
 
 ## Acceptance criteria
 
@@ -71,7 +61,7 @@ Then MENU-4…6 hold.
 **MENU-7: shortcuts**
 Given the menu is visible
 When the reader presses `D`, `I` or `B` (either case, no Ctrl/Alt/Meta)
-Then Definition, Image or Both is chosen, and the menu closes. While no menu is visible, these keys do nothing.
+Then Definition, Image or Both is chosen: the menu closes and the lookup modal opens (lookup-modal MODAL-1). While no menu is visible, these keys do nothing.
 
 **MENU-11: keyboard and screen readers**
 Given the menu has appeared
@@ -94,13 +84,6 @@ Given the menu is visible
 When the book moves (a page turn, a scroll, or foliate keeping a selection in view)
 Then the menu closes. 300 ms after the book stops moving, it comes back beside the selection, but only if the selection is still entirely inside the reader area. After a real page turn the selection is off screen, so the menu stays closed. Resizing the window counts as the book moving: the menu closes, and comes back beside the selection once the book has been laid out again.
 
-### Temporary
-
-**MENU-15: off in production** (removed by the lookup-modal PR)
-Given the production build without the `litsnap:lookups-preview` flag
-When 1–6 words are selected
-Then no menu appears.
-
 ## Design
 
 | Part                       | Where                                              | Tested by                                   |
@@ -112,7 +95,7 @@ Then no menu appears.
 
 - **The watcher** decides _when_ to look at the selection. It gets `pointerdown`, `pointerup` and `selectionchange` from each book document, plus foliate's `relocate`. It knows nothing about the DOM: it asks for a key that identifies the current selection, so a `selectionchange` that arrives after `pointerup` for the same selection is ignored instead of making the menu flicker.
 - **`ReaderView`** turns a selection into what the menu needs: the text, the `Range`, and the rectangles of its first and last lines in **our** page's coordinates (the selection's rectangles are relative to the book's iframe, so the iframe's position is added).
-- **`ReaderScreen`** owns the menu: keys (the book's iframe already forwards its key presses), click-away, resizing, and the flag.
+- **`ReaderScreen`** owns the menu: keys (the book's iframe already forwards its key presses) and click-away.
 
 ## Out of scope
 
