@@ -188,3 +188,46 @@ foliate-view {
   font-size: 0.875rem;
   opacity: 0.8;
 }
+
+/* The lookup menu beside a selection (selection-menu.md). Viewport coordinates from placeMenu(). */
+.selection-menu {
+  position: fixed;
+  z-index: 2;
+  display: grid;
+  padding: 0.25rem;
+  background: var(--bg, Canvas);
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 20%);
+}
+
+.selection-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.selection-menu button:hover,
+.selection-menu button:focus {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+/* :focus, not :focus-visible: Tab is pressed inside the book's iframe, so our page doesn't count it
+   as keyboard focus, and menu items are only ever focused from the keyboard (a click closes it). */
+.selection-menu button:focus {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.selection-menu kbd {
+  opacity: 0.6;
+  font-family: inherit;
+}

@@ -1,4 +1,5 @@
 // Hosts foliate-js's <foliate-view> for one book. Spec: docs/features/epub-reader.md.
+import { countWords, MAX_LOOKUP_WORDS, normalise } from '@litsnap/shared';
 import type { BookMetadata, RelocateDetail, TocItem, View } from 'foliate-js/view.js';
 import {
   useCallback,
@@ -8,9 +9,66 @@ import {
   useRef,
   type Ref,
 } from 'react';
+import type { Box, MenuAnchor } from '../lookup/placeMenu';
+import { createSelectionWatcher } from '../lookup/selectionWatcher';
 import type { Layout, Position, Theme } from '../storage/bookStore';
 import { bookCss } from './appearance';
 import { openExternalLink } from './externalLinks';
+
+/** A selection the lookup menu can be offered for (selection-menu MENU-1…3). */
+export interface BookSelection {
+  text: string;
+  range: Range;
+  /** Where it is on our page (not the book's iframe), for placing the menu. */
+  anchor: MenuAnchor;
+}
+
+/** Identifies a selection, so a repeated `selectionchange` for it can be ignored. */
+function selectionKey(doc: Document | undefined): string {
+  const selection = doc?.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return '';
+  const range = selection.getRangeAt(0);
+  return `${String(range.startOffset)}:${String(range.endOffset)}:${selection.toString()}`;
+}
+
+/** Rounding and borders can put a line a pixel outside the reader area. */
+const EDGE_TOLERANCE = 1;
+
+/**
+ * The selection in `doc` if it has 1–6 words (MENU-2) and is fully on screen (MENU-10), with its
+ * first and last line moved from the iframe's coordinates into ours.
+ */
+function describeSelection(doc: Document, readerArea: Element): BookSelection | undefined {
+  const selection = doc.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return undefined;
+  const text = selection.toString();
+  const words = countWords(normalise(text));
+  if (words < 1 || words > MAX_LOOKUP_WORDS) return undefined;
+
+  const range = selection.getRangeAt(0);
+  const lines = [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0);
+  const frame = doc.defaultView?.frameElement?.getBoundingClientRect();
+  const firstLine = lines[0];
+  const lastLine = lines.at(-1);
+  if (!frame || !firstLine || !lastLine) return undefined;
+  const toPage = (rect: DOMRect): Box => ({
+    left: rect.left + frame.left,
+    top: rect.top + frame.top,
+    right: rect.right + frame.left,
+    bottom: rect.bottom + frame.top,
+  });
+  const first = toPage(firstLine);
+  const last = toPage(lastLine);
+  const bounds = readerArea.getBoundingClientRect();
+  const inside = (box: Box) =>
+    box.left >= bounds.left - EDGE_TOLERANCE &&
+    box.right <= bounds.right + EDGE_TOLERANCE &&
+    box.top >= bounds.top - EDGE_TOLERANCE &&
+    box.bottom <= bounds.bottom + EDGE_TOLERANCE;
+  if (!inside(first) || !inside(last)) return undefined;
+
+  return { text, range, anchor: { first, last, bounds } };
+}
 
 export interface Appearance {
   fontSize: number;
@@ -41,6 +99,8 @@ export interface ReaderControls {
   prev(): void;
   goLeft(): void;
   goRight(): void;
+  /** Gives the keyboard back to the book (e.g. after the selection menu had focus). */
+  focusBook(): void;
 }
 
 interface ReaderViewProps {
@@ -58,6 +118,8 @@ interface ReaderViewProps {
   onKeyDown: (event: KeyboardEvent) => void;
   /** A file dropped onto the book's iframe, which our page never sees otherwise (RD-26). */
   onDropFile: (file: File) => void;
+  /** A selection to offer lookups for, or `undefined` when the menu should go (MENU-1…3, 10). */
+  onSelection: (selection: BookSelection | undefined) => void;
   onError: (error: unknown) => void;
 }
 
@@ -93,6 +155,8 @@ export function ReaderView({
   // starts once the book is open and positioned.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const queued = useRef(0);
+  /** The book document the reader last selected in or clicked. */
+  const activeDoc = useRef<Document>(undefined);
 
   // Only touches refs, so it's the same function on every render.
   const call = useCallback((action: (v: View) => Promise<unknown>) => {
@@ -123,6 +187,9 @@ export function ReaderView({
       goRight: () => {
         call((v) => v.goRight());
       },
+      focusBook: () => {
+        activeDoc.current?.defaultView?.focus();
+      },
     };
   }, [call]);
 
@@ -133,6 +200,7 @@ export function ReaderView({
   const onKeyDown = useEffectEvent(handlers.onKeyDown);
   const onError = useEffectEvent(handlers.onError);
   const onDropFile = useEffectEvent(handlers.onDropFile);
+  const onSelection = useEffectEvent(handlers.onSelection);
   const startAt = useEffectEvent(() => initialPosition);
   const latestAppearance = useEffectEvent(() => appearance);
 
@@ -145,6 +213,20 @@ export function ReaderView({
     let markReady: () => void = () => undefined;
     queue.current = new Promise<void>((resolve) => {
       markReady = resolve;
+    });
+
+    // When to offer the lookup menu (selection-menu.md). Fixed-layout books get lookups with #19.
+    const watcher = createSelectionWatcher({
+      key: () => selectionKey(activeDoc.current),
+      show: () => {
+        const doc = activeDoc.current;
+        const area = container.current;
+        const usable = doc && area && current && !current.isFixedLayout;
+        onSelection(usable ? describeSelection(doc, area) : undefined);
+      },
+      hide: () => {
+        onSelection(undefined);
+      },
     });
 
     async function open() {
@@ -168,11 +250,28 @@ export function ReaderView({
       });
       current.addEventListener('relocate', (event) => {
         onRelocate(event.detail);
+        watcher.relocated();
       });
       current.addEventListener('load', (event) => {
         const { doc } = event.detail;
         doc.addEventListener('keydown', (keyEvent) => {
           onKeyDown(keyEvent);
+        });
+        doc.addEventListener('pointerdown', () => {
+          activeDoc.current = doc;
+          watcher.pointerDown();
+        });
+        const released = () => {
+          activeDoc.current = doc;
+          watcher.pointerUp();
+        };
+        doc.addEventListener('pointerup', released);
+        // Pressing on selected text drags it instead of selecting, and cancels the pointer: without
+        // this the watcher would think the button is still down.
+        doc.addEventListener('pointercancel', released);
+        doc.addEventListener('selectionchange', () => {
+          activeDoc.current = doc;
+          watcher.selectionChange();
         });
         // Without these, a file dropped on the page would be opened *inside* the book's iframe.
         doc.addEventListener('dragover', (dragEvent) => {
@@ -215,6 +314,8 @@ export function ReaderView({
 
     return () => {
       cancelled = true;
+      watcher.dispose();
+      activeDoc.current = undefined;
       markReady(); // let anything queued run (and find no view), rather than wait forever
       view.current = undefined;
       current?.close();
