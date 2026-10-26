@@ -5,3 +5,4 @@ export interface HealthResponse {
 }
 
 export { countWords, displayTerm, MAX_LOOKUP_WORDS, normalise } from './term';
+export type { LookupKind } from './lookup';

@@ -218,3 +218,18 @@ export const linksEpub = () =>
       },
     }),
   );
+
+/** Selection menu (MENU-*): a short sentence to select in, and a 10-word one, on one page. */
+export const lookupEpub = () =>
+  epub(
+    'lookup.epub',
+    buildEpubBytes({
+      files: {
+        'OEBPS/chapter1.xhtml': chapter(
+          '',
+          `<p>The house had a hipped roof and two chimneys.</p>
+<p>One two three four five six seven eight nine ten.</p>`,
+        ),
+      },
+    }),
+  );

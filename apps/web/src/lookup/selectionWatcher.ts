@@ -22,9 +22,53 @@ export interface SelectionWatcher {
   dispose(): void;
 }
 
-// RED: stub until the implementation commit.
-export const createSelectionWatcher: (
-  options: SelectionWatcherOptions,
-) => SelectionWatcher = () => {
-  throw new Error('createSelectionWatcher is not implemented yet');
-};
+export function createSelectionWatcher({
+  key,
+  show,
+  hide,
+  settleMs = SETTLE_MS,
+}: SelectionWatcherOptions): SelectionWatcher {
+  let pointerIsDown = false;
+  /** The selection last looked at, so a repeat `selectionchange` for it changes nothing. */
+  let lookedAt: string | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = undefined;
+  };
+  const look = () => {
+    cancel();
+    lookedAt = key();
+    if (lookedAt) show();
+    else hide();
+  };
+  const lookWhenStill = () => {
+    cancel();
+    if (!pointerIsDown) timer = setTimeout(look, settleMs);
+  };
+
+  return {
+    pointerDown() {
+      pointerIsDown = true;
+      cancel();
+    },
+    pointerUp() {
+      pointerIsDown = false;
+      look();
+    },
+    selectionChange() {
+      const current = key();
+      if (current === lookedAt) return;
+      hide();
+      lookedAt = undefined;
+      lookWhenStill(); // finds nothing selected and stays hidden, if it was cleared
+    },
+    relocated() {
+      hide();
+      lookedAt = undefined;
+      lookWhenStill();
+    },
+    dispose: cancel,
+  };
+}
