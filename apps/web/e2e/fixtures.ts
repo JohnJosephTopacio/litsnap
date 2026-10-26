@@ -219,7 +219,10 @@ export const linksEpub = () =>
     }),
   );
 
-/** Selection menu (MENU-*): a short sentence to select in, and a 10-word one, on one page. */
+/**
+ * Selection menu and lookup modal: a short sentence to select in, a 10-word one, and markup that
+ * is only text (MODAL-2 renders it as text), all on one page.
+ */
 export const lookupEpub = () =>
   epub(
     'lookup.epub',
@@ -228,7 +231,8 @@ export const lookupEpub = () =>
         'OEBPS/chapter1.xhtml': chapter(
           '',
           `<p>The house had a hipped roof and two chimneys.</p>
-<p>One two three four five six seven eight nine ten.</p>`,
+<p>One two three four five six seven eight nine ten.</p>
+<p>Careful: &lt;img src=x onerror="top.localStorage.setItem('pwned-modal', 1)"&gt; is just text.</p>`,
         ),
       },
     }),

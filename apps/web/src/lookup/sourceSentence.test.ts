@@ -233,3 +233,27 @@ describe('sourceSentence', () => {
     });
   });
 });
+
+describe('sourceSentence on a book document in an iframe', () => {
+  it('works with nodes from another realm (the reader renders books in iframes)', () => {
+    // The iframe's document has its own Text and Element classes, as the reader's book frames do.
+    const frame = document.createElement('iframe');
+    document.body.append(frame);
+    const FrameParser = (frame.contentWindow as (Window & typeof globalThis) | null)?.DOMParser;
+    if (!FrameParser) throw new Error('no iframe window');
+    const doc = new FrameParser().parseFromString(
+      '<!doctype html><body><p>Before. The house had a hipped roof. After.</p></body>',
+      'text/html',
+    );
+    const p = doc.querySelector('p');
+    expect(p).not.toBeNull();
+    expect(p instanceof Element).toBe(false); // really another realm
+
+    expect(sourceSentence(select(doc.body, 'hipped roof'))).toEqual({
+      before: 'The house had a ',
+      match: 'hipped roof',
+      after: '.',
+    });
+    frame.remove();
+  });
+});

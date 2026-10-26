@@ -16,6 +16,21 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// jsdom has no <dialog> methods. A stand-in with what LookupModal relies on: open/close and the
+// `close` event. Esc, the ::backdrop and inertness are tested in Playwright, in a real browser.
+if (typeof HTMLDialogElement !== 'undefined' && !('showModal' in HTMLDialogElement.prototype)) {
+  Object.assign(HTMLDialogElement.prototype, {
+    showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    },
+    close(this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return;
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    },
+  });
+}
+
 afterEach(() => {
   cleanup();
 });

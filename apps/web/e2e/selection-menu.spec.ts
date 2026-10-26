@@ -2,12 +2,14 @@
 // (the production build and CSP). Placement rules in detail are unit-tested (placeMenu.test.ts).
 import { expect, test, type Frame, type Page } from '@playwright/test';
 import { bookFrame } from './book';
-import { JEKYLL, JEKYLL_TITLE, fixedLayoutEpub, lookupEpub } from './fixtures';
+import { fixedLayoutEpub } from './fixtures';
 import {
   clearSelection,
   dragSelect,
-  enableLookups,
   lookupMenu,
+  lookupModal,
+  openJekyll,
+  openLookupBook,
   scriptSelect,
   selectedText,
   textBoxes,
@@ -17,27 +19,6 @@ import {
 const settle = (page: Page) => page.waitForTimeout(750);
 
 const bottomBar = (page: Page) => page.getByRole('contentinfo', { name: 'Reading progress' });
-
-async function openLookupBook(page: Page): Promise<Frame> {
-  await enableLookups(page);
-  await page.goto('/');
-  await page.locator('input[type="file"]').setInputFiles(lookupEpub());
-  return bookFrame(page, 'hipped roof');
-}
-
-/** Jekyll at the first page of "Story of the Door", for page turns. */
-async function openJekyll(page: Page): Promise<Frame> {
-  await enableLookups(page);
-  await page.goto('/');
-  await page.locator('input[type="file"]').setInputFiles(JEKYLL);
-  await expect(page.getByRole('heading', { level: 1, name: JEKYLL_TITLE })).toBeVisible();
-  await page.getByRole('button', { name: 'Contents' }).click();
-  await page
-    .getByRole('navigation', { name: 'Table of contents' })
-    .getByText('Story of the Door')
-    .click();
-  return bookFrame(page, 'rugged countenance');
-}
 
 /** MENU-4: the menu sits 8 px right of the selection's end, level with its line. */
 async function expectBesideEnd(page: Page, frame: Frame, from: string, to = from) {
@@ -121,7 +102,6 @@ test.describe('appearing', () => {
   });
 
   test('MENU-13: fixed-layout books show no menu', async ({ page }) => {
-    await enableLookups(page);
     await page.goto('/');
     await page.locator('input[type="file"]').setInputFiles(fixedLayoutEpub());
     const frame = await bookFrame(page, 'A fixed page.');
@@ -153,21 +133,33 @@ test.describe('placement', () => {
 });
 
 test.describe('choosing', () => {
-  test('MENU-7: D, I and B choose (closing the menu for now); without a menu they do nothing', async ({
+  test('MENU-7: D, I and B open the modal for that kind; without a menu they do nothing', async ({
     page,
   }) => {
     const frame = await openLookupBook(page);
-    for (const key of ['d', 'I', 'b']) {
-      await clearSelection(frame);
+    // The kind shows in the Google link: Google Images (udm=2) only for Image (MODAL-4).
+    for (const [key, images] of [
+      ['d', false],
+      ['I', true],
+      ['b', false],
+    ] as const) {
       await dragSelect(page, frame, 'hipped', 'roof');
       await expect(lookupMenu(page)).toBeVisible();
       await page.keyboard.press(key);
       await expect(lookupMenu(page)).toBeHidden();
+      await expect(lookupModal(page)).toBeVisible();
+      const href = await lookupModal(page)
+        .getByRole('link', { name: 'Search Google ↗' })
+        .getAttribute('href');
+      expect(href?.includes('udm=2')).toBe(images);
+      await page.keyboard.press('Escape');
+      await expect(lookupModal(page)).toBeHidden();
     }
 
     await page.keyboard.press('d');
     await settle(page);
     await expect(lookupMenu(page)).toBeHidden();
+    await expect(lookupModal(page)).toBeHidden();
   });
 
   test('MENU-7: Ctrl+D is not a shortcut', async ({ page }) => {
@@ -190,6 +182,11 @@ test.describe('choosing', () => {
     await expect(lookupMenu(page).getByRole('menuitem', { name: 'Image' })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(lookupMenu(page)).toBeHidden();
+    await expect(lookupModal(page)).toBeVisible();
+    await expect(lookupModal(page).getByRole('link', { name: 'Search Google ↗' })).toHaveAttribute(
+      'href',
+      /udm=2/,
+    );
   });
 });
 
@@ -280,13 +277,4 @@ test.describe('going away', () => {
     await expect(lookupMenu(page)).toBeVisible();
     await expectBesideEnd(page, frame, 'hipped', 'roof');
   });
-});
-
-test('MENU-15 (temporary): production shows no menu without the preview flag', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('input[type="file"]').setInputFiles(lookupEpub());
-  const frame = await bookFrame(page, 'hipped roof');
-  await dragSelect(page, frame, 'hipped', 'roof');
-  await settle(page);
-  await expect(lookupMenu(page)).toBeHidden();
 });

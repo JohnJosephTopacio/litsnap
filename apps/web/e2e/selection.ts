@@ -1,14 +1,32 @@
-// Selecting text in the book like a reader would, for the selection menu (selection-menu.md).
-import type { Frame, Page } from '@playwright/test';
+// Selecting text in the book like a reader would, for the selection menu and the lookup modal.
+import { expect, type Frame, type Page } from '@playwright/test';
+import { bookFrame } from './book';
+import { JEKYLL, JEKYLL_TITLE, lookupEpub } from './fixtures';
 
-/** MENU-15 (temporary): lookups are off in production builds unless this flag is set. */
-export async function enableLookups(page: Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('litsnap:lookups-preview', 'on');
-  });
+/** The generated lookup book (fixtures.ts), open, with its frame. */
+export async function openLookupBook(page: Page): Promise<Frame> {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(lookupEpub());
+  return bookFrame(page, 'hipped roof');
+}
+
+/** Jekyll at the first page of "Story of the Door", for page turns. */
+export async function openJekyll(page: Page): Promise<Frame> {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(JEKYLL);
+  await expect(page.getByRole('heading', { level: 1, name: JEKYLL_TITLE })).toBeVisible();
+  await page.getByRole('button', { name: 'Contents' }).click();
+  await page
+    .getByRole('navigation', { name: 'Table of contents' })
+    .getByText('Story of the Door')
+    .click();
+  return bookFrame(page, 'rugged countenance');
 }
 
 export const lookupMenu = (page: Page) => page.getByRole('menu', { name: 'Look up' });
+
+/** The lookup modal (lookup-modal.md). */
+export const lookupModal = (page: Page) => page.getByRole('dialog');
 
 export interface PageBox {
   left: number;

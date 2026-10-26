@@ -10,11 +10,11 @@ Keep books, reading progress and reader settings in the browser (IndexedDB, via 
 
 Database `litsnap`, schema version **1**:
 
-| Store      | Key      | Value                                                                                                                             |
-| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `books`    | `id`     | `{ id, title, author, fileName, size, blob, addedAt, lastOpenedAt }`                                                              |
-| `progress` | `bookId` | `{ bookId, cfi, fraction, updatedAt }`                                                                                            |
-| `settings` | key      | `fontSize` (number, %), `theme` (`'light' \| 'dark'`, unset = follow OS), `layout` (`'paginated' \| 'scrolled'`), `currentBookId` |
+| Store      | Key      | Value                                                                                                                                                                                                           |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `books`    | `id`     | `{ id, title, author, fileName, size, blob, addedAt, lastOpenedAt }`                                                                                                                                            |
+| `progress` | `bookId` | `{ bookId, cfi, fraction, updatedAt }`                                                                                                                                                                          |
+| `settings` | key      | `fontSize` (number, %), `theme` (`'light' \| 'dark'`, unset = follow OS), `layout` (`'paginated' \| 'scrolled'`), `lookupSize` (`'s' \| 'm' \| 'l'`, [lookup-modal](lookup-modal.md) MODAL-12), `currentBookId` |
 
 - `id` is the **SHA-256 of the file bytes** (hex, via Web Crypto). The same file always gets the same id, even if it is renamed.
 - `title` and `author` come from the book's metadata (foliate), and fall back to `fileName` and `''`.
@@ -100,6 +100,11 @@ Then it is clamped to 80–200 and rounded to the nearest 10.
 Given the theme was set to `'dark'` and layout to `'scrolled'`
 When settings are read in a fresh session (new `idb` connection)
 Then they are `'dark'` and `'scrolled'`.
+
+**STO-15: lookup size** (added with [lookup-modal](lookup-modal.md))
+Given nothing has been stored, or a value other than `'s'`, `'m'` or `'l'`
+When settings are read
+Then `lookupSize` is `'m'`. After it is set to `'l'`, it reads `'l'`, including in a fresh session.
 
 ## Notes for implementation
 

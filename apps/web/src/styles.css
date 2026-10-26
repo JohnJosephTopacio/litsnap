@@ -231,3 +231,110 @@ foliate-view {
   opacity: 0.6;
   font-family: inherit;
 }
+
+/* The lookup modal (lookup-modal.md): a native <dialog>, so the browser draws the ::backdrop. */
+.lookup-modal {
+  box-sizing: border-box; /* widths include the border: 40rem is 40rem */
+  width: min(40rem, 92vw);
+  max-width: none; /* the browser's own dialog styles would cap it */
+  max-height: 85vh;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 0.5rem;
+  background: var(--bg, Canvas);
+  color: var(--fg, CanvasText);
+  box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 30%);
+}
+
+.lookup-modal[data-size='s'] {
+  width: min(28rem, 92vw);
+}
+
+.lookup-modal[data-size='l'] {
+  width: min(56rem, 92vw);
+}
+
+/* MODAL-14: narrow windows get the full width, whatever the size setting. */
+@media (width < 40rem) {
+  .lookup-modal,
+  .lookup-modal[data-size] {
+    width: calc(100vw - 1rem);
+  }
+}
+
+.lookup-modal::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+/* Fills the dialog, so only clicks on the ::backdrop land on the <dialog> itself (MODAL-15). */
+.lookup-content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.lookup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lookup-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+.lookup-sizes {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.lookup-header button {
+  min-width: 2rem;
+}
+
+.lookup-sizes button[aria-pressed='true'] {
+  font-weight: bold;
+  outline: 2px solid currentColor;
+}
+
+.lookup-sentence {
+  margin: 0;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.lookup-sentence mark {
+  font-style: normal;
+}
+
+.lookup-section h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.lookup-entry h4 {
+  margin: 0.5rem 0 0;
+  font-style: italic;
+  font-weight: normal;
+}
+
+.lookup-entry ol {
+  margin: 0.25rem 0;
+}
+
+.lookup-attribution,
+.lookup-note {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.lookup-footer {
+  padding-top: 0.5rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
