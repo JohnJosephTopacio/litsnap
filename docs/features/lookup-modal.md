@@ -94,11 +94,11 @@ Then the modal is the full width of the window, minus a small margin, whatever t
 **MODAL-15: Esc, backdrop, Close**
 Given the modal is open
 When the reader presses `Esc`, clicks the dimmed backdrop, or presses the **Close** button
-Then the modal closes. Clicks inside the modal don't close it.
+Then the modal closes. Clicks inside the modal don't close it, and neither does a press that starts inside and ends on the backdrop (selecting text in the modal, say).
 
 **MODAL-16: focus**
 Given the modal opens
-Then focus moves to its **Close** button, and `Tab` cycles only through the modal's controls (the rest of the page is inert).
+Then focus moves to its **Close** button. `Tab` moves only between the modal's controls: nothing else on the page can get focus, because the page behind is inert. (As with any modal dialog, `Tab` past the last control may reach the browser's own toolbar before coming back.)
 
 **MODAL-17: after closing**
 Given the modal closes

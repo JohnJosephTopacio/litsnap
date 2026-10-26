@@ -1,6 +1,7 @@
-// The reader's settings popover (RD-15, RD-16, RD-18, RD-28) and the Terms link (TERMS-4).
+// The reader's settings popover (RD-15, RD-16, RD-18, RD-28, lookup-modal MODAL-13) and the Terms
+// link (TERMS-4).
 import { useEffect, useRef } from 'react';
-import type { Layout, Settings, Theme } from '../storage/bookStore';
+import type { Layout, LookupSize, Settings, Theme } from '../storage/bookStore';
 
 export const FONT_STEP = 10;
 export const FONT_MIN = 80;
@@ -102,6 +103,18 @@ export function SettingsPanel({ settings, theme, fixedLayout, onChange }: Settin
         disabled={fixedLayout}
         onChange={(value) => {
           onChange({ layout: value });
+        }}
+      />
+      <Choice<LookupSize>
+        label="Lookup size"
+        options={[
+          ['s', 'Small'],
+          ['m', 'Medium'],
+          ['l', 'Large'],
+        ]}
+        value={settings.lookupSize}
+        onChange={(value) => {
+          onChange({ lookupSize: value });
         }}
       />
       {/* New tab, so the reader is never interrupted (TERMS-4). */}

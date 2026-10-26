@@ -1,10 +1,12 @@
 // The reader: top bar, TOC and settings panels, book, page arrows and bottom bar.
 // Spec: docs/features/epub-reader.md; the selection menu: docs/features/selection-menu.md.
-import type { LookupKind } from '@litsnap/shared';
+import { displayTerm, normalise, type LookupKind } from '@litsnap/shared';
 import type { BookMetadata, RelocateDetail, TocItem } from 'foliate-js/view.js';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { lookupsEnabled } from '../lookup/preview';
+import { defaultLookupClient } from '../lookup/client';
+import { LookupModal, type LookupRequest } from '../lookup/LookupModal';
 import { kindForKey, SelectionMenu, type SelectionMenuHandle } from '../lookup/SelectionMenu';
+import { sourceSentence } from '../lookup/sourceSentence';
 import { appStore } from '../storage/appStore';
 import type { Position, Settings, Theme } from '../storage/bookStore';
 import { createProgressSaver } from '../storage/progressSaver';
@@ -36,8 +38,6 @@ interface ReaderScreenProps {
 }
 
 type Panel = 'toc' | 'settings';
-
-const ignoreSelection = () => undefined;
 
 /** Whether a key press is ours to handle: not while typing, and not with Ctrl/Alt/Meta. */
 function isReaderKey(event: KeyboardEvent) {
@@ -78,9 +78,9 @@ export function ReaderScreen(props: ReaderScreenProps) {
   const [fixedLayout, setFixedLayout] = useState(false);
   const [panel, setPanel] = useState<Panel>();
   const [location, setLocation] = useState<RelocateDetail>();
-  // The selection the menu is shown for (selection-menu.md). Off in production for now (MENU-15).
-  const [lookups] = useState(lookupsEnabled);
+  // The selection the menu is shown for (selection-menu.md), and the open lookup (lookup-modal.md).
   const [selection, setSelection] = useState<BookSelection>();
+  const [lookup, setLookup] = useState<LookupRequest>();
   const menu = useRef<SelectionMenuHandle>(null);
 
   // Debounced progress writes (STO-9), flushed when the page is hidden or the book changes (STO-10).
@@ -124,7 +124,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
     setPanel((open) => (open === which ? undefined : which));
   };
 
-  const menuOpen = lookups && selection !== undefined;
+  const menuOpen = selection !== undefined && lookup === undefined;
 
   /** Closes the menu, keeping the selection; the keyboard goes back to the book if it was in it. */
   const closeMenu = useCallback(() => {
@@ -132,9 +132,27 @@ export function ReaderScreen(props: ReaderScreenProps) {
     setSelection(undefined);
   }, []);
 
-  // MENU-7: choosing opens the lookup modal (lookup-modal.md) for that kind. Until it lands,
-  // choosing just closes the menu.
-  const choose: (kind: LookupKind) => void = closeMenu;
+  /** MENU-7, MODAL-1: the menu closes and the modal opens; the selection stays underneath. */
+  const choose = useCallback(
+    (kind: LookupKind) => {
+      if (!selection) return;
+      setLookup({
+        kind,
+        term: normalise(selection.text),
+        display: displayTerm(selection.text),
+        sentence: sourceSentence(selection.range),
+      });
+      setSelection(undefined);
+    },
+    [selection],
+  );
+
+  /** MODAL-17: the selection is cleared and the keyboard goes back to the book. */
+  const closeLookup = useCallback(() => {
+    setLookup(undefined);
+    controls.current?.clearSelection();
+    controls.current?.focusBook();
+  }, []);
 
   // MENU-9: clicking our own interface closes the menu. (Clicks in the book clear the selection,
   // and resizing re-lays out the book, which counts as it moving: ReaderView reports both.)
@@ -151,6 +169,8 @@ export function ReaderScreen(props: ReaderScreenProps) {
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      // MODAL-18: the modal's own keys (Esc, Tab) are the browser's; the reader's are off.
+      if (lookup) return;
       const menuAction = menuOpen ? menuKeyAction(event) : undefined;
       const tabbingOutOfMenu =
         menuAction === 'focusMenu' && menu.current?.contains(document.activeElement);
@@ -173,7 +193,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
         controls.current?.[action]();
       }
     },
-    [panel, menuOpen, closeMenu, choose],
+    [panel, menuOpen, closeMenu, choose, lookup],
   );
 
   useEffect(() => {
@@ -262,7 +282,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
           onRelocate={onRelocate}
           onKeyDown={onKeyDown}
           onDropFile={onDropFile}
-          onSelection={lookups ? setSelection : ignoreSelection}
+          onSelection={setSelection}
           onError={props.onError}
         />
         <button
@@ -279,6 +299,17 @@ export function ReaderScreen(props: ReaderScreenProps) {
         <span>{progress}</span>
       </footer>
       {menuOpen && <SelectionMenu ref={menu} anchor={selection.anchor} onChoose={choose} />}
+      {lookup && (
+        <LookupModal
+          request={lookup}
+          client={defaultLookupClient}
+          size={settings.lookupSize}
+          onSizeChange={(lookupSize) => {
+            props.onSettingsChange({ lookupSize });
+          }}
+          onClose={closeLookup}
+        />
+      )}
     </div>
   );
 }

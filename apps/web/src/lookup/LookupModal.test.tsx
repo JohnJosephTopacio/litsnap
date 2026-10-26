@@ -4,6 +4,7 @@
 import type { LookupKind, LookupResult } from '@litsnap/shared';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { LookupSize } from '../storage/bookStore';
 import type { LookupClient } from './client';
 import { LookupModal, type LookupRequest } from './LookupModal';
 import { createMockLookupClient, MOCK_TERMS } from './mockClient';
@@ -15,18 +16,26 @@ const request = (kind: LookupKind, term: string = MOCK_TERMS.found): LookupReque
   sentence: { before: 'The house had a ', match: 'Hipped-Roof', after: ' and two chimneys.' },
 });
 
+interface RenderOptions {
+  kind?: LookupKind;
+  term?: string;
+  /** `null`: no client, as in production (a default parameter would replace `undefined`). */
+  client?: LookupClient | null;
+  size?: LookupSize;
+}
+
 function renderModal({
-  kind = 'definition' as LookupKind,
-  term = MOCK_TERMS.found as string,
-  client = createMockLookupClient({ delayMs: 0 }) as LookupClient | undefined,
-  size = 'm' as const,
-} = {}) {
+  kind = 'definition',
+  term = MOCK_TERMS.found,
+  client = createMockLookupClient({ delayMs: 0 }),
+  size = 'm',
+}: RenderOptions = {}) {
   const onClose = vi.fn();
   const onSizeChange = vi.fn();
   const view = render(
     <LookupModal
       request={request(kind, term)}
-      client={client}
+      client={client ?? undefined}
       size={size}
       onSizeChange={onSizeChange}
       onClose={onClose}
@@ -98,7 +107,7 @@ describe('LookupModal', () => {
 
   describe('MODAL-5: production, until M3', () => {
     it('says lookups are coming soon instead of showing sections', () => {
-      renderModal({ kind: 'both', client: undefined });
+      renderModal({ kind: 'both', client: null });
       expect(screen.getByText('Definitions and images are coming soon.')).toBeInTheDocument();
       expect(screen.queryByRole('region')).toBeNull();
       expect(screen.getByRole('link', { name: 'Search Google ↗' })).toBeInTheDocument();
@@ -137,6 +146,31 @@ describe('LookupModal', () => {
       expect(source).toHaveAttribute('href', expect.stringMatching(/^https:\/\//));
       expect(source.closest('p')?.textContent).toMatch(/^From /);
       expect(within(definition).queryByText(/Summary from Wikipedia/)).toBeNull();
+    });
+
+    it('links the source only for http(s) URLs, as they will come from other sites', async () => {
+      const { client, calls } = controlledClient();
+      renderModal({ client });
+      await act(async () => {
+        calls[0]?.resolve({
+          term: 'x',
+          definition: {
+            status: 'found',
+            fromWikipedia: false,
+            entries: [{ partOfSpeech: 'noun', senses: ['A sense.'] }],
+            source: {
+              sourceName: 'Evil source',
+              sourceUrl: 'javascript:alert(1)',
+              licence: 'Evil licence',
+              licenceUrl: 'data:text/html,hi',
+            },
+          },
+        });
+        await Promise.resolve();
+      });
+      expect(screen.getByText(/Evil source/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Evil source' })).toBeNull();
+      expect(screen.queryByRole('link', { name: 'Evil licence' })).toBeNull();
     });
 
     it('labels a Wikipedia summary', async () => {
@@ -185,6 +219,28 @@ describe('LookupModal', () => {
   });
 
   describe('MODAL-11: closing cancels', () => {
+    it('ignores a cancelled lookup that fails afterwards', async () => {
+      const { client, calls } = controlledClient();
+      const { rerender } = renderModal({ client });
+      // A new request in the same modal cancels the first lookup…
+      rerender(
+        <LookupModal
+          request={request('definition', 'flying buttress')}
+          client={client}
+          size="m"
+          onSizeChange={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+      expect(calls[0]?.signal.aborted).toBe(true);
+      // …whose AbortError then arrives: the new lookup is still loading, not failed.
+      await act(async () => {
+        calls[0]?.reject(new DOMException('Aborted', 'AbortError'));
+        await Promise.resolve();
+      });
+      expect(within(section('Definition')).getByText('Loading…')).toBeInTheDocument();
+    });
+
     it('aborts a lookup that is still loading', () => {
       const { client, calls } = controlledClient();
       const { unmount } = renderModal({ client });
@@ -225,8 +281,16 @@ describe('LookupModal', () => {
       fireEvent.click(screen.getByRole('heading', { level: 2 }));
       expect(onClose).not.toHaveBeenCalled();
       // A click on the ::backdrop is a click on the <dialog> itself.
+      fireEvent.pointerDown(dialog());
       fireEvent.click(dialog());
       expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays open when a press inside ends on the backdrop (e.g. selecting text)', () => {
+      const { onClose } = renderModal();
+      fireEvent.pointerDown(screen.getByRole('heading', { level: 2 }));
+      fireEvent.click(dialog()); // the browser targets the common ancestor: the <dialog>
+      expect(onClose).not.toHaveBeenCalled();
     });
   });
 });

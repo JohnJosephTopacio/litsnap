@@ -26,8 +26,13 @@ const LOWERCASE_START = /^[\s"'“‘«([{]*\p{Ll}/u;
 
 const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
 
+// Book documents live in the reader's iframe, another JavaScript realm: their nodes aren't
+// `instanceof` our Text or Element, so check nodeType instead.
+const isElement = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
+const isText = (node: Node): node is Text => node.nodeType === Node.TEXT_NODE;
+
 function blockOf(node: Node): Element | null {
-  const element = node instanceof Element ? node : node.parentElement;
+  const element = isElement(node) ? node : node.parentElement;
   return element?.closest(BLOCKS) ?? null;
 }
 
@@ -59,7 +64,7 @@ function blockText(block: Element): BlockText {
   return {
     text,
     offsetOf: (container, offset) => {
-      if (container instanceof Text) {
+      if (isText(container)) {
         const found = nodes.find(({ node }) => node === container);
         if (found) return found.start + offset;
       }

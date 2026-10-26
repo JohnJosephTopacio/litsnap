@@ -101,6 +101,8 @@ export interface ReaderControls {
   goRight(): void;
   /** Gives the keyboard back to the book (e.g. after the selection menu had focus). */
   focusBook(): void;
+  /** Clears the selection in the book (after a lookup, lookup-modal MODAL-17). */
+  clearSelection(): void;
 }
 
 interface ReaderViewProps {
@@ -189,6 +191,9 @@ export function ReaderView({
       },
       focusBook: () => {
         activeDoc.current?.defaultView?.focus();
+      },
+      clearSelection: () => {
+        activeDoc.current?.getSelection()?.removeAllRanges();
       },
     };
   }, [call]);
