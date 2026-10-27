@@ -1,4 +1,5 @@
-// Acceptance criteria CLIENT-9…11 from docs/features/lookup-client.md, against `vite preview`
+// Acceptance criteria CLIENT-9…11 from docs/features/lookup-client.md (and MODAL-20 from
+// lookup-modal.md), against `vite preview`
 // (the production build and CSP), with the Worker faked by `fakeWorker`.
 import { expect, test, type Page } from '@playwright/test';
 import type { LookupResult } from '@litsnap/shared';
@@ -68,6 +69,27 @@ test('CLIENT-10: an error offers Retry, which asks again', async ({ page }) => {
 
   await expect(definition).toContainText('A roof that slopes down on every side.');
   expect(asked).toHaveLength(2);
+});
+
+test('MODAL-20: Retry on a failed section asks the Worker for that section alone', async ({
+  page,
+}) => {
+  const asked = await fakeWorker(page, (url) =>
+    url.searchParams.get('kind') === 'both'
+      ? { body: { ...HIPPED_ROOF, images: { status: 'failed' } } }
+      : notFound(url),
+  );
+
+  await lookUpHippedRoof(page, 'Both');
+  const images = lookupModal(page).getByRole('region', { name: 'Images' });
+  const definition = lookupModal(page).getByRole('region', { name: 'Definition' });
+  await expect(images).toContainText("Couldn't load this. Try again.");
+  await expect(definition).toContainText('A roof that slopes down on every side.');
+  await images.getByRole('button', { name: 'Retry' }).click();
+
+  await expect(images).toContainText('No good image found.');
+  await expect(definition).toContainText('A roof that slopes down on every side.');
+  expect(asked.map((url) => url.searchParams.get('kind'))).toEqual(['both', 'image']);
 });
 
 test('CLIENT-11: no more "coming soon"', async ({ page }) => {

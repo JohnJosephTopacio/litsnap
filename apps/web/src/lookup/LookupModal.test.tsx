@@ -1,8 +1,8 @@
 // Acceptance criteria from docs/features/lookup-modal.md, for the component against the mock
 // client. jsdom has no showModal(), so test-setup.ts stands in; Esc, the backdrop and the focus
 // trap need a real browser and are in e2e/lookup-modal.spec.ts.
-import type { LookupKind, LookupResult } from '@litsnap/shared';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import type { FoundDefinition, LookupKind, LookupResult } from '@litsnap/shared';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { LookupSize } from '../storage/bookStore';
 import type { LookupClient } from './client';
@@ -43,20 +43,36 @@ function renderModal({
   return { onClose, onSizeChange, ...view };
 }
 
+/** A dictionary entry for tests that build their own results. */
+const SAMPLE_DEFINITION: FoundDefinition = {
+  from: 'dictionary',
+  entries: [{ partOfSpeech: 'noun', senses: ['A sample sense.'] }],
+  source: { sourceName: 'Sample', sourceUrl: 'https://example.org/' },
+};
+
+/** Runs `step` (resolving or rejecting a lookup) and lets React render what follows. */
+async function settle(step: () => void) {
+  await act(async () => {
+    step();
+    await Promise.resolve();
+  });
+}
+
 const dialog = () => screen.getByRole('dialog', { name: 'Hipped-Roof' });
 const section = (name: string) => screen.getByRole('region', { name });
 
 /** A client whose lookups resolve or reject only when the test says so. */
 function controlledClient() {
   const calls: {
+    kind: LookupKind;
     signal: AbortSignal;
     resolve: (result: LookupResult) => void;
     reject: (error: Error) => void;
   }[] = [];
   const client: LookupClient = {
-    lookup: (_term, _kind, signal) =>
+    lookup: (_term, kind, signal) =>
       new Promise((resolve, reject) => {
-        calls.push({ signal, resolve, reject });
+        calls.push({ kind, signal, resolve, reject });
       }),
   };
   return { client, calls };
@@ -233,6 +249,118 @@ describe('LookupModal', () => {
         await Promise.resolve();
       });
       expect(screen.getByText('No definition found.')).toBeInTheDocument();
+    });
+  });
+
+  describe('MODAL-19: a section that failed on its own', () => {
+    it.each([
+      [
+        'images',
+        { definition: { status: 'found', ...SAMPLE_DEFINITION }, images: { status: 'failed' } },
+        'Images',
+        'Definition',
+        'A sample sense.',
+      ],
+      [
+        'the definition',
+        { definition: { status: 'failed' }, images: { status: 'not-found' } },
+        'Definition',
+        'Images',
+        'No good image found.',
+      ],
+    ] as const)(
+      'failed %s offer Retry; the other section shows',
+      async (_name, sections, failed, other, content) => {
+        const { client, calls } = controlledClient();
+        renderModal({ kind: 'both', client });
+        await settle(() => {
+          calls[0]?.resolve({ term: 'hipped roof', ...sections });
+        });
+
+        expect(
+          within(section(failed)).getByText("Couldn't load this. Try again."),
+        ).toBeInTheDocument();
+        expect(within(section(failed)).getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+        expect(within(section(failed)).queryByText(/No (definition|good image) found/)).toBeNull();
+        expect(within(section(other)).getByText(content)).toBeInTheDocument();
+        expect(within(section(other)).queryByRole('button', { name: 'Retry' })).toBeNull();
+      },
+    );
+  });
+
+  describe('MODAL-20: retrying one section', () => {
+    /** Kind=both, with the images failed and the definition found. */
+    async function withFailedImages() {
+      const controlled = controlledClient();
+      renderModal({ kind: 'both', client: controlled.client });
+      await settle(() => {
+        controlled.calls[0]?.resolve({
+          term: 'hipped roof',
+          definition: { status: 'found', ...SAMPLE_DEFINITION },
+          images: { status: 'failed' },
+        });
+      });
+      fireEvent.click(within(section('Images')).getByRole('button', { name: 'Retry' }));
+      return controlled;
+    }
+
+    it('asks for that kind alone, and only that section loads', async () => {
+      const { calls } = await withFailedImages();
+
+      expect(calls.map(({ kind }) => kind)).toEqual(['both', 'image']);
+      expect(within(section('Images')).getByText('Loading…')).toBeInTheDocument();
+      expect(section('Images')).toHaveAttribute('aria-busy', 'true');
+      expect(within(section('Definition')).getByText('A sample sense.')).toBeInTheDocument();
+      expect(section('Definition')).toHaveAttribute('aria-busy', 'false');
+
+      await settle(() => {
+        calls[1]?.resolve({ term: 'hipped roof', images: { status: 'not-found' } });
+      });
+      expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
+      expect(within(section('Definition')).getByText('A sample sense.')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['fails again', { term: 'hipped roof', images: { status: 'failed' } } as const],
+      ['throws', new Error('offline')],
+    ])('a retry that %s offers Retry again, for that kind', async (_name, outcome) => {
+      const { calls } = await withFailedImages();
+      await settle(() => {
+        if (outcome instanceof Error) calls[1]?.reject(outcome);
+        else calls[1]?.resolve(outcome);
+      });
+
+      expect(
+        within(section('Images')).getByText("Couldn't load this. Try again."),
+      ).toBeInTheDocument();
+      expect(within(section('Definition')).getByText('A sample sense.')).toBeInTheDocument();
+      fireEvent.click(within(section('Images')).getByRole('button', { name: 'Retry' }));
+      expect(calls.map(({ kind }) => kind)).toEqual(['both', 'image', 'image']);
+    });
+
+    it('a failed definition retries the definition alone', async () => {
+      const { client, calls } = controlledClient();
+      renderModal({ kind: 'both', client });
+      await settle(() => {
+        calls[0]?.resolve({
+          term: 'hipped roof',
+          definition: { status: 'failed' },
+          images: { status: 'not-found' },
+        });
+      });
+
+      fireEvent.click(within(section('Definition')).getByRole('button', { name: 'Retry' }));
+
+      expect(calls.map(({ kind }) => kind)).toEqual(['both', 'definition']);
+      expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
+    });
+
+    it('closing the modal cancels the retry', async () => {
+      const { calls } = await withFailedImages();
+
+      cleanup();
+
+      expect(calls[1]?.signal.aborted).toBe(true);
     });
   });
 
