@@ -6,16 +6,30 @@ export const RATE_LIMIT = { requests: 30, windowMs: 60_000 } as const;
 
 export type RateVerdict = { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
-// RED PHASE: stubs until the implementation PR.
-
-/** Counts one IP's requests in memory; nothing is stored (API-13). */
+/**
+ * Counts one IP's requests in a fixed window that starts at its first request (API-13). Nothing
+ * is stored: if the object is evicted, the IP just gets a fresh window.
+ */
 export class RateLimiter extends DurableObject<Env> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  #windowStart = -Infinity;
+  #count = 0;
+
   hit(now: number): RateVerdict {
-    throw new Error('RateLimiter.hit is not implemented yet');
+    if (now >= this.#windowStart + RATE_LIMIT.windowMs) {
+      this.#windowStart = now;
+      this.#count = 0;
+    }
+    if (this.#count < RATE_LIMIT.requests) {
+      this.#count += 1;
+      return { allowed: true };
+    }
+    const left = this.#windowStart + RATE_LIMIT.windowMs - now;
+    return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil(left / 1000)) };
   }
 }
 
 /** Asks the IP's `RateLimiter` whether this request may go ahead. */
-export const checkRateLimit: (env: Env, ip: string) => Promise<RateVerdict> = () =>
-  Promise.reject(new Error('checkRateLimit is not implemented yet'));
+export function checkRateLimit(env: Env, ip: string): Promise<RateVerdict> {
+  const limiter = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName(ip));
+  return limiter.hit(Date.now());
+}

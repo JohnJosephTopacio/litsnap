@@ -20,7 +20,7 @@ function withWiktionary(outcome = FOUND) {
 }
 
 describe('API-1: a lookup', () => {
-  it.fails('answers 200 with the LookupResult as JSON', async () => {
+  it('answers 200 with the LookupResult as JSON', async () => {
     const { get } = withWiktionary();
 
     const response = await get('/lookup?term=roof&kind=definition');
@@ -35,7 +35,7 @@ describe('API-1: a lookup', () => {
 });
 
 describe('API-2: the Worker normalises again', () => {
-  it.fails('looks up and returns the normalised term', async () => {
+  it('looks up and returns the normalised term', async () => {
     const { get, wiktionary } = withWiktionary();
 
     const response = await get(lookupPath('Hipped-Roof,'));
@@ -46,7 +46,7 @@ describe('API-2: the Worker normalises again', () => {
 });
 
 describe('API-3: invalid requests', () => {
-  it.fails.each([
+  it.each([
     ['no term', '/lookup?kind=definition'],
     ['a term that normalises to nothing', lookupPath('—')],
     ['7 words', lookupPath('one two three four five six seven')],
@@ -63,7 +63,7 @@ describe('API-3: invalid requests', () => {
     expect(wiktionary.calls).toEqual([]);
   });
 
-  it.fails.each([
+  it.each([
     ['6 words', 'one two three four five six'],
     ['100 characters', 'a'.repeat(100)],
   ])('%s is allowed', async (_name, term) => {
@@ -79,7 +79,7 @@ describe('API-3: invalid requests', () => {
 });
 
 describe('API-4: sections by kind', () => {
-  it.fails('definition', async () => {
+  it('definition', async () => {
     const { get } = withWiktionary();
 
     expect(Object.keys(await (await get(lookupPath('roof', 'definition'))).json())).toEqual([
@@ -88,20 +88,17 @@ describe('API-4: sections by kind', () => {
     ]);
   });
 
-  it.fails(
-    'image: images are not found until M4, and no definition provider is asked',
-    async () => {
-      const { get, wiktionary } = withWiktionary();
+  it('image: images are not found until M4, and no definition provider is asked', async () => {
+    const { get, wiktionary } = withWiktionary();
 
-      expect(await (await get(lookupPath('roof', 'image'))).json()).toEqual({
-        term: 'roof',
-        images: { status: 'not-found' },
-      });
-      expect(wiktionary.calls).toEqual([]);
-    },
-  );
+    expect(await (await get(lookupPath('roof', 'image'))).json()).toEqual({
+      term: 'roof',
+      images: { status: 'not-found' },
+    });
+    expect(wiktionary.calls).toEqual([]);
+  });
 
-  it.fails('both', async () => {
+  it('both', async () => {
     const { get } = withWiktionary();
 
     expect(await (await get(lookupPath('roof', 'both'))).json()).toEqual({
@@ -114,7 +111,7 @@ describe('API-4: sections by kind', () => {
 
 describe('API-5: upstream failure', () => {
   // Terms no other test caches: a cached definition would be a 200.
-  it.fails.each([
+  it.each([
     ['definition', 'purlin'],
     ['both', 'rafter'],
   ])('kind=%s: 502', async (kind, term) => {
@@ -126,7 +123,7 @@ describe('API-5: upstream failure', () => {
     expect(await response.json()).toEqual({ error: 'upstream-failed' });
   });
 
-  it.fails('kind=image never asks, so never fails', async () => {
+  it('kind=image never asks, so never fails', async () => {
     const { get } = withWiktionary(FAILED);
 
     expect((await get(lookupPath('roof', 'image'))).status).toBe(200);
@@ -150,7 +147,7 @@ describe('API-6: only GET /lookup', () => {
 });
 
 describe('API-7: found definitions are cached for 30 days', () => {
-  it.fails('stores the definition section, and the next lookup asks no provider', async () => {
+  it('stores the definition section, and the next lookup asks no provider', async () => {
     const { get, wiktionary } = withWiktionary();
 
     const first = await (await get(lookupPath('eaves'))).json();
@@ -169,7 +166,7 @@ describe('API-7: found definitions are cached for 30 days', () => {
 });
 
 describe('API-8: not-found definitions are cached for 1 day', () => {
-  it.fails('stores not-found for a day', async () => {
+  it('stores not-found for a day', async () => {
     const { get, wiktionary } = withWiktionary(NOT_FOUND);
 
     await get(lookupPath('xyzzy'));
@@ -187,7 +184,7 @@ describe('API-8: not-found definitions are cached for 1 day', () => {
 });
 
 describe('API-9: failures are never cached', () => {
-  it.fails('stores nothing, and asks again next time', async () => {
+  it('stores nothing, and asks again next time', async () => {
     const { get, wiktionary } = withWiktionary(FAILED);
 
     expect((await get(lookupPath('soffit'))).status).toBe(502);
@@ -199,11 +196,11 @@ describe('API-9: failures are never cached', () => {
 });
 
 describe('API-10: the cache key', () => {
-  it.fails('is the normalised term under v1/definition', () => {
+  it('is the normalised term under v1/definition', () => {
     expect(definitionCacheKey('hipped roof')).toBe(`${CACHE}hipped%20roof`);
   });
 
-  it.fails('a different spelling of the same term, or kind=both, is a cache hit', async () => {
+  it('a different spelling of the same term, or kind=both, is a cache hit', async () => {
     const { get, wiktionary } = withWiktionary();
 
     await get(lookupPath('flying buttress'));
@@ -216,7 +213,7 @@ describe('API-10: the cache key', () => {
 });
 
 describe('API-11: browser caching', () => {
-  it.fails('a 200 may be kept for a day', async () => {
+  it('a 200 may be kept for a day', async () => {
     const { get } = withWiktionary();
 
     expect((await get(lookupPath('gable'))).headers.get('Cache-Control')).toBe(
@@ -224,7 +221,7 @@ describe('API-11: browser caching', () => {
     );
   });
 
-  it.fails.each([
+  it.each([
     ['400', '/lookup?term=roof', FOUND],
     ['502', lookupPath('dormer'), FAILED],
   ])('a %s is not stored', async (_name, path, outcome) => {
@@ -235,7 +232,7 @@ describe('API-11: browser caching', () => {
 });
 
 describe('API-15: only our pages may read responses', () => {
-  it.fails.each(['https://litsnap.pages.dev', 'http://localhost:5173', 'http://localhost:4173'])(
+  it.each(['https://litsnap.pages.dev', 'http://localhost:5173', 'http://localhost:4173'])(
     '%s may, errors included',
     async (origin) => {
       const { get } = withWiktionary();
@@ -248,7 +245,7 @@ describe('API-15: only our pages may read responses', () => {
     },
   );
 
-  it.fails.each([
+  it.each([
     ['another site', { Origin: 'https://example.com' }],
     ['no Origin (curl)', {}],
   ])('%s gets the answer, but no Access-Control-Allow-Origin', async (_name, headers) => {
@@ -262,7 +259,7 @@ describe('API-15: only our pages may read responses', () => {
 });
 
 describe('API-16: one log line per lookup, without the term or the IP', () => {
-  it.fails('a lookup that asked the providers', async () => {
+  it('a lookup that asked the providers', async () => {
     const dictionary = fakeProvider('dictionaryapi', FOUND);
     const { get, logs } = setUp({ providers: [fakeProvider('wiktionary', FAILED), dictionary] });
 
@@ -289,7 +286,7 @@ describe('API-16: one log line per lookup, without the term or the IP', () => {
     ]);
   });
 
-  it.fails('a cache hit asks no provider', async () => {
+  it('a cache hit asks no provider', async () => {
     const { get, logs } = withWiktionary();
 
     await get(lookupPath('lintel'));
@@ -298,7 +295,7 @@ describe('API-16: one log line per lookup, without the term or the IP', () => {
     expect(logs[1]).toMatchObject({ status: 200, cache: 'hit', providers: [] });
   });
 
-  it.fails.each([
+  it.each([
     ['an invalid request', '/lookup?term=roof', { status: 400, cache: 'none' }],
     ['kind=image', lookupPath('roof', 'image'), { status: 200, kind: 'image', cache: 'none' }],
   ])('%s needs no definition', async (_name, path, expected) => {
@@ -311,7 +308,7 @@ describe('API-16: one log line per lookup, without the term or the IP', () => {
     if (!('kind' in expected)) expect(logs[0]).not.toHaveProperty('kind');
   });
 
-  it.fails('never contains the term, the selection or the IP', async () => {
+  it('never contains the term, the selection or the IP', async () => {
     const { get, logs } = withWiktionary(FAILED);
 
     await get(lookupPath('Hipped-Roof,'), { 'CF-Connecting-IP': '203.0.113.7' });
