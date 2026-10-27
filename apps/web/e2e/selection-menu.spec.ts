@@ -14,6 +14,12 @@ import {
   selectedText,
   textBoxes,
 } from './selection';
+import { fakeWorker } from './worker';
+
+// Choosing an item opens the modal, which asks the Worker.
+test.beforeEach(async ({ page }) => {
+  await fakeWorker(page);
+});
 
 /** Negative tests: long enough for a menu that *would* appear (300 ms settle) to appear. */
 const settle = (page: Page) => page.waitForTimeout(750);

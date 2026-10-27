@@ -19,8 +19,7 @@ const request = (kind: LookupKind, term: string = MOCK_TERMS.found): LookupReque
 interface RenderOptions {
   kind?: LookupKind;
   term?: string;
-  /** `null`: no client, as in production (a default parameter would replace `undefined`). */
-  client?: LookupClient | null;
+  client?: LookupClient;
   size?: LookupSize;
 }
 
@@ -35,7 +34,7 @@ function renderModal({
   const view = render(
     <LookupModal
       request={request(kind, term)}
-      client={client ?? undefined}
+      client={client}
       size={size}
       onSizeChange={onSizeChange}
       onClose={onClose}
@@ -102,15 +101,6 @@ describe('LookupModal', () => {
       expect(link).toHaveAttribute('href', 'https://www.google.com/search?q=hipped+roof&udm=2');
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    });
-  });
-
-  describe('MODAL-5: production, until M3', () => {
-    it('says lookups are coming soon instead of showing sections', () => {
-      renderModal({ kind: 'both', client: null });
-      expect(screen.getByText('Definitions and images are coming soon.')).toBeInTheDocument();
-      expect(screen.queryByRole('region')).toBeNull();
-      expect(screen.getByRole('link', { name: 'Search Google ↗' })).toBeInTheDocument();
     });
   });
 

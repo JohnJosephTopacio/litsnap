@@ -1,0 +1,44 @@
+name: Live check
+
+# CLIENT-12 (docs/features/lookup-client.md): do the real sources still answer the way our
+# parsers expect, and does the deployed Worker answer? Normal CI never uses the network; this does.
+# A failure here means a source changed (e.g. Wiktionary's RESTBase endpoint retiring), not
+# necessarily our code. GitHub emails the owner when a scheduled run fails.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/live-check.yml
+      - apps/worker/src/definitions/**
+      - apps/worker/live/**
+
+permissions:
+  contents: read
+
+env:
+  WORKER: https://litsnap-worker.johnjoseph-topacio-110503.workers.dev
+
+jobs:
+  live:
+    name: Live sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Through our providers, not the deployed /lookup: the Worker caches found definitions for
+      # 30 days (API-7), which would hide a broken source for a month.
+      - run: pnpm --filter @litsnap/worker test:live
+
+      - name: Deployed Worker answers
+        run: |
+          curl --fail --silent --show-error "$WORKER/health"
+          curl --fail --silent --show-error "$WORKER/lookup?term=roof&kind=definition" \
+            | jq --exit-status '.term == "roof" and .definition.status == "found"'
