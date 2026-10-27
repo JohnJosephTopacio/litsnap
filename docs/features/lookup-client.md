@@ -1,6 +1,6 @@
 # Feature: Lookup client
 
-> Milestone: M3 · Status: in progress · Product spec: [spec.md §4.2–4.3, §7](../spec.md#7-privacy--data) · Decision: [0003](../decisions/0003-lookup-api-origin.md)
+> Milestone: M3 · Status: done (#31) · Product spec: [spec.md §4.2–4.3, §7](../spec.md#7-privacy--data) · Decision: [0003](../decisions/0003-lookup-api-origin.md)
 
 ## Goal
 
