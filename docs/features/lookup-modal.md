@@ -1,6 +1,6 @@
 # Feature: Lookup modal
 
-> Milestone: M2, failed sections M4 · Status: M2 done; MODAL-19/20 in progress · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
+> Milestone: M2, failed sections M4 · Status: M2 done; MODAL-19/20 done (#36) · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
 
 ## Goal
 

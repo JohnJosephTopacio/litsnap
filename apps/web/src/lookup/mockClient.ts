@@ -8,6 +8,8 @@ export const MOCK_TERMS = {
   found: 'hipped roof',
   wikipedia: 'flying buttress',
   error: 'fail',
+  /** With kind=both the images fail on their own; asked again alone, they work (MODAL-19/20). */
+  partial: 'flaky',
 } as const;
 
 const SAMPLE_SOURCE = {
@@ -68,7 +70,11 @@ export function createMockLookupClient({ delayMs = 600 } = {}): LookupClient {
       const result: LookupResult = { term };
       if (wants(kind, 'definition'))
         result.definition = DEFINITIONS[term] ?? { status: 'not-found' };
-      if (wants(kind, 'image')) result.images = { status: 'not-found' };
+      if (wants(kind, 'image'))
+        result.images =
+          term === MOCK_TERMS.partial && kind === 'both'
+            ? { status: 'failed' }
+            : { status: 'not-found' };
       return result;
     },
   };

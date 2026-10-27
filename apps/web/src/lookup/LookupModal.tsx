@@ -41,13 +41,27 @@ type Lookup =
 /**
  * Runs the lookup, again on `retry()`, and aborts it when the modal closes (MODAL-6, 10, 11).
  * Results are tagged with their attempt, so a new attempt reads as loading until its own result
- * arrives, without setting state synchronously inside the effect.
+ * arrives, without setting state synchronously inside the effect. A `lazy` lookup waits for the
+ * first `retry()` and is `undefined` until then: one section's own retry (MODAL-20).
  */
-function useLookup(client: LookupClient, term: string, kind: LookupKind) {
-  const [attempt, setAttempt] = useState(0);
+function useLookup(
+  client: LookupClient,
+  term: string,
+  kind: LookupKind,
+): { lookup: Lookup; retry: () => void };
+function useLookup(
+  client: LookupClient,
+  term: string,
+  kind: LookupKind,
+  lazy: true,
+): { lookup: Lookup | undefined; retry: () => void };
+function useLookup(client: LookupClient, term: string, kind: LookupKind, lazy = false) {
+  const first = lazy ? -1 : 0;
+  const [attempt, setAttempt] = useState(first);
   const [settled, setSettled] = useState<{ attempt: number; lookup: Lookup }>();
 
   useEffect(() => {
+    if (attempt < 0) return;
     const controller = new AbortController();
     const settle = (lookup: Lookup) => {
       if (!controller.signal.aborted) setSettled({ attempt, lookup });
@@ -65,7 +79,8 @@ function useLookup(client: LookupClient, term: string, kind: LookupKind) {
     };
   }, [client, term, kind, attempt]);
 
-  const lookup: Lookup = settled?.attempt === attempt ? settled.lookup : { status: 'loading' };
+  const lookup: Lookup | undefined =
+    attempt < 0 ? undefined : settled?.attempt === attempt ? settled.lookup : { status: 'loading' };
   const retry = () => {
     setAttempt((n) => n + 1);
   };
@@ -149,12 +164,22 @@ function Images({ images }: { images: ImageSection | undefined }) {
 
 function Section(props: {
   title: string;
+  /** The modal's lookup. */
   lookup: Lookup;
   retry: () => void;
+  /** This section's own retry, once it has started (MODAL-20). */
+  own: Lookup | undefined;
+  retryOwn: () => void;
+  /** This section's part of a result. */
+  part: (result: LookupResult) => { status: string } | undefined;
   children: (result: LookupResult) => ReactNode;
 }) {
   const titleId = useId();
-  const { lookup } = props;
+  const lookup = props.own ?? props.lookup;
+  // A section that failed on its own retries on its own; a whole failure retries the whole
+  // lookup (MODAL-10, 19, 20).
+  const failedAlone = lookup.status === 'done' && props.part(lookup.result)?.status === 'failed';
+  const retry = failedAlone || props.own ? props.retryOwn : props.retry;
   return (
     <section
       className="lookup-section"
@@ -163,15 +188,15 @@ function Section(props: {
     >
       <h3 id={titleId}>{props.title}</h3>
       {lookup.status === 'loading' && <p>Loading…</p>}
-      {lookup.status === 'error' && (
+      {(lookup.status === 'error' || failedAlone) && (
         <>
           <p>Couldn&apos;t load this. Try again.</p>
-          <button type="button" onClick={props.retry}>
+          <button type="button" onClick={retry}>
             Retry
           </button>
         </>
       )}
-      {lookup.status === 'done' && props.children(lookup.result)}
+      {lookup.status === 'done' && !failedAlone && props.children(lookup.result)}
     </section>
   );
 }
@@ -184,6 +209,8 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
   const titleId = useId();
   const { kind, term, display, sentence } = request;
   const { lookup, retry } = useLookup(client, term, kind);
+  const definitionAgain = useLookup(client, term, 'definition', true);
+  const imagesAgain = useLookup(client, term, 'image', true);
   const onClose = useEffectEvent(props.onClose);
 
   // showModal(): the top layer, the dimmed ::backdrop, Esc, and an inert page behind (MODAL-1,
@@ -250,12 +277,26 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
         </p>
 
         {kind !== 'image' && (
-          <Section title="Definition" lookup={lookup} retry={retry}>
+          <Section
+            title="Definition"
+            lookup={lookup}
+            retry={retry}
+            own={definitionAgain.lookup}
+            retryOwn={definitionAgain.retry}
+            part={(result) => result.definition}
+          >
             {(result) => <Definition definition={result.definition} />}
           </Section>
         )}
         {kind !== 'definition' && (
-          <Section title="Images" lookup={lookup} retry={retry}>
+          <Section
+            title="Images"
+            lookup={lookup}
+            retry={retry}
+            own={imagesAgain.lookup}
+            retryOwn={imagesAgain.retry}
+            part={(result) => result.images}
+          >
             {(result) => <Images images={result.images} />}
           </Section>
         )}
