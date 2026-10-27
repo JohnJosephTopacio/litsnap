@@ -53,7 +53,7 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 > - **The CSP decision to make first:** `img-src` only allows `'self' blob: data:`, so thumbnails from `upload.wikimedia.org` need either a new decision record or images proxied through the Worker. Book iframes inherit `img-src`, so allowing Wikimedia would also let books load images from there.
 > - **The live check** (`apps/worker/live/`) should cover the image sources too.
 
-- Wikipedia lead images → Commons search; up to 6 thumbnails, enlarge, attribution, alt text.
+- The Wikipedia article's gallery images → its Commons category; up to 6 freely licensed thumbnails, enlarge, attribution, alt text. Spec: [image-providers](features/image-providers.md).
 - "No good image found" empty state; "Search Google" fallback link.
 
 ## M5 — PDF
