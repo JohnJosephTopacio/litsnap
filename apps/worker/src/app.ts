@@ -13,7 +13,13 @@ import {
 } from '@litsnap/shared';
 import { readDefinition, storeDefinition } from './cache';
 import { DEFINITION_PROVIDERS, lookupDefinition } from './definitions/chain';
-import { DEFAULT_TIMEOUT_MS, type DefinitionProvider } from './definitions/types';
+import {
+  DEFAULT_TIMEOUT_MS,
+  type DefinitionProvider,
+  type ProviderContext,
+} from './definitions/types';
+import { lookupImages } from './images/chain';
+import type { ImageOutcome } from './images/types';
 import { checkRateLimit, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
@@ -40,10 +46,19 @@ export interface LookupLog {
     reason?: string;
     ms: number;
   }[];
+  /** Only when images were asked for (API-22). */
+  images?: {
+    cache: 'hit' | 'miss';
+    outcome: 'found' | 'not-found' | 'failed';
+    reason?: string;
+    ms: number;
+  };
 }
 
 export interface AppDeps {
   providers: readonly DefinitionProvider[];
+  /** The image chain (API-17). RED PHASE: not called until the implementation PR. */
+  images: (term: string, context: ProviderContext) => Promise<ImageOutcome>;
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>;
   log: (entry: LookupLog) => void;
 }
@@ -51,6 +66,7 @@ export interface AppDeps {
 /** What production uses; tests replace some of these (lookup-api.md, "Notes for implementation"). */
 export const DEFAULT_DEPS: AppDeps = {
   providers: DEFINITION_PROVIDERS,
+  images: lookupImages,
   rateLimit: checkRateLimit,
   log: (entry) => {
     console.log(JSON.stringify(entry));

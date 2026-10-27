@@ -10,6 +10,10 @@ export const NOT_FOUND_TTL_SECONDS = 24 * 60 * 60;
 export const definitionCacheKey = (term: string) =>
   `https://lookup-cache.invalid/v1/definition/${encodeURIComponent(term)}`;
 
+/** The `caches.default` key for a normalised term's images section (API-20). */
+export const imagesCacheKey = (term: string) =>
+  `https://lookup-cache.invalid/v1/images/${encodeURIComponent(term)}`;
+
 export async function readDefinition(term: string): Promise<DefinitionSection | undefined> {
   const cached = await caches.default.match(definitionCacheKey(term));
   return cached ? await cached.json<DefinitionSection>() : undefined;

@@ -1,8 +1,8 @@
 // What a lookup asks for and gets back. Spec: docs/spec.md §4–5; docs/features/lookup-modal.md.
 //
 // Definitions are settled (definition-providers.md), and so are images (image-providers.md).
-// M4's lookup-api changes may still add to the sections. Network errors and rate limits are thrown,
-// not results.
+// A section can fail on its own (lookup-api.md, API-18). Network errors, rate limits and a 502 are
+// thrown, not results.
 
 /** The selection menu's three choices (MENU-7). */
 export type LookupKind = 'definition' | 'image' | 'both';
@@ -37,7 +37,9 @@ export interface WikipediaSummary {
 
 export type FoundDefinition = DictionaryDefinition | WikipediaSummary;
 
-export type DefinitionSection = ({ status: 'found' } & FoundDefinition) | { status: 'not-found' };
+/** `failed`: this section couldn't be looked up, though the other one was (API-18). */
+export type DefinitionSection =
+  ({ status: 'found' } & FoundDefinition) | { status: 'not-found' } | { status: 'failed' };
 
 /** A freely licensed image from Wikipedia or Commons (docs/features/image-providers.md). */
 export interface LookupImage {
@@ -58,7 +60,9 @@ export interface LookupImage {
 }
 
 export type ImageSection =
-  { status: 'found'; /** At most 6. */ images: LookupImage[] } | { status: 'not-found' };
+  | { status: 'found'; /** At most 6. */ images: LookupImage[] }
+  | { status: 'not-found' }
+  | { status: 'failed' };
 
 export interface LookupResult {
   /** The normalised term that was looked up. */

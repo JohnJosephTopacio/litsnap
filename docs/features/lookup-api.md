@@ -1,6 +1,6 @@
 # Feature: Lookup API
 
-> Milestone: M3 · Status: done (#29, #30) · Product spec: [spec.md §5, §7, §8](../spec.md#8-architecture) · Decision: [0004](../decisions/0004-lookup-cache-and-rate-limit.md)
+> Milestone: M3, images M4 · Status: M3 done (#29, #30); images: spec + failing tests · Product spec: [spec.md §5, §7, §8](../spec.md#8-architecture) · Decision: [0004](../decisions/0004-lookup-cache-and-rate-limit.md)
 
 ## Goal
 
@@ -9,11 +9,13 @@ The Worker's `GET /lookup` endpoint takes a term from the browser and answers wi
 1. Rate-limits each client IP.
 2. Re-normalises and checks the term.
 3. Answers from the cache when it can.
-4. Otherwise runs the definition chain ([definition-providers.md](definition-providers.md)) and caches the result.
+4. Otherwise runs the definition chain ([definition-providers.md](definition-providers.md)) and the image chain ([image-providers.md](image-providers.md)), at the same time, and caches each section.
 
 It logs what happened without logging what was looked up.
 
-Calling it from the web app (CSP, CORS from the browser's side, the client and its timeout) is `lookup-client.md`. Images stay "not found" until M4.
+Calling it from the web app (CSP, CORS from the browser's side, the client and its timeout) is `lookup-client.md`.
+
+**M4 (images)** adds API-17…22: the images section, a `failed` status for one section while the other is shown, and an images cache entry. Decided in the M4 grilling (2026-10-27, Q4, Q12): a `502` only when every requested section failed, and failures are still never cached.
 
 ## API
 
@@ -21,32 +23,42 @@ Calling it from the web app (CSP, CORS from the browser's side, the client and i
 GET /lookup?term=<selection>&kind=definition|image|both
 ```
 
-| Status | Body                                          | When                                  |
-| ------ | --------------------------------------------- | ------------------------------------- |
-| `200`  | `LookupResult`                                | Looked up (found or not)              |
-| `400`  | `{ "error": "invalid-request" }`              | API-3                                 |
-| `429`  | `{ "error": "rate-limited" }` + `Retry-After` | API-12                                |
-| `502`  | `{ "error": "upstream-failed" }`              | The definition chain `failed` (API-5) |
+| Status | Body                                          | When                                                        |
+| ------ | --------------------------------------------- | ----------------------------------------------------------- |
+| `200`  | `LookupResult`                                | At least one requested section was looked up (found or not) |
+| `400`  | `{ "error": "invalid-request" }`              | API-3                                                       |
+| `429`  | `{ "error": "rate-limited" }` + `Retry-After` | API-12                                                      |
+| `502`  | `{ "error": "upstream-failed" }`              | Every requested section `failed` (API-5, API-18)            |
 
 `LookupErrorBody` (in `packages/shared`) is the error body type.
 
-| Module                         | Exports                                                                                    |
-| ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `apps/worker/src/app.ts`       | `createApp(deps?)`, `AppDeps`, `LookupLog`, `ALLOWED_ORIGINS`, `MAX_TERM_LENGTH` (100)     |
-| `apps/worker/src/cache.ts`     | `definitionCacheKey(term)`, `FOUND_TTL_SECONDS`, `NOT_FOUND_TTL_SECONDS`                   |
-| `apps/worker/src/rateLimit.ts` | `RateLimiter` (Durable Object), `RATE_LIMIT`, `RateVerdict`, `checkRateLimit(env, ip)`     |
-| `apps/worker/src/index.ts`     | `default` (the app), `RateLimiter` (Workers needs the class exported from the main module) |
+| Module                         | Exports                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `apps/worker/src/app.ts`       | `createApp(deps?)`, `AppDeps`, `LookupLog`, `ALLOWED_ORIGINS`, `MAX_TERM_LENGTH` (100)           |
+| `apps/worker/src/cache.ts`     | `definitionCacheKey(term)`, `imagesCacheKey(term)`, `FOUND_TTL_SECONDS`, `NOT_FOUND_TTL_SECONDS` |
+| `apps/worker/src/rateLimit.ts` | `RateLimiter` (Durable Object), `RATE_LIMIT`, `RateVerdict`, `checkRateLimit(env, ip)`           |
+| `apps/worker/src/index.ts`     | `default` (the app), `RateLimiter` (Workers needs the class exported from the main module)       |
 
 `createApp` takes its dependencies so tests can replace them. Production uses the defaults:
 
 ```ts
 interface AppDeps {
   providers: readonly DefinitionProvider[]; // DEFINITION_PROVIDERS
+  images: (term: string, context: ProviderContext) => Promise<ImageOutcome>; // lookupImages
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>; // checkRateLimit (the Durable Object)
   log: (entry: LookupLog) => void; // console.log(JSON.stringify(entry)), read in Workers Logs
 }
 
 type RateVerdict = { allowed: true } | { allowed: false; retryAfterSeconds: number };
+```
+
+Each section of a `LookupResult` (`packages/shared`) can now also be `{ status: 'failed' }`, with no reason: reasons are for the logs.
+
+```ts
+type DefinitionSection =
+  ({ status: 'found' } & FoundDefinition) | { status: 'not-found' } | { status: 'failed' };
+type ImageSection =
+  { status: 'found'; images: LookupImage[] } | { status: 'not-found' } | { status: 'failed' };
 ```
 
 ## Acceptance criteria
@@ -68,11 +80,11 @@ Then the response is `400 { error: 'invalid-request' }` and no provider is asked
 
 **API-4: sections by kind**
 Given `kind=definition`, `image` or `both`
-Then the result has `definition`, `images`, or both. `images` is `{ status: 'not-found' }` until M4 (MODAL-9). With `kind=image`, no definition provider is asked.
+Then the result has `definition`, `images`, or both. With `kind=image`, no definition provider is asked, and with `kind=definition`, the image chain isn't (API-17).
 
 **API-5: upstream failure**
 Given the definition chain returns `failed` (DEF-19)
-Then the response is `502 { error: 'upstream-failed' }`, so the modal shows Retry (MODAL-10).
+Then the response is `502 { error: 'upstream-failed' }`, so the modal shows Retry (MODAL-10). With `kind=both`, that's only when the images failed too (API-18).
 
 **API-6: only `GET /lookup`**
 Given `POST /lookup`, or `GET` on an unknown path
@@ -136,6 +148,36 @@ Then `log` is called once with `{ route: 'lookup', status, kind, cache: 'hit' | 
 
 The entry never contains the term, the raw selection or the IP, in any field (spec §7). `reason` comes from DEF-1…4 (`HTTP 500`, `TimeoutError`), never from the term.
 
+### Images (M4)
+
+**API-17: the images section**
+Given `kind=image` or `kind=both`
+When the image chain (`deps.images`, `lookupImages` in production) returns `found` or `not-found`
+Then `images` is `{ status: 'found', images }` or `{ status: 'not-found' }`. The chain is given the normalised term and the same `ProviderContext` as the definition providers (`timeoutMs` 3000). With `kind=definition`, it isn't asked.
+
+**API-18: one section can fail while the other is shown**
+Given `kind=both`
+When exactly one of the two chains returns `failed`
+Then the response is `200`, with that section `{ status: 'failed' }` and the other as usual, so the modal can show what it has and offer Retry for the rest.
+Given `kind=both` with both chains `failed`, or `kind=image` with the image chain `failed`
+Then the response is `502 { error: 'upstream-failed' }`, as API-5.
+
+**API-19: both sections are looked up at the same time**
+Given `kind=both`, and neither section is cached
+Then the definition chain and the image chain run in parallel. Each can take up to three rounds of 3-second requests, so one after the other could pass the client's 15-second limit (CLIENT).
+
+**API-20: images are cached like definitions**
+Given a lookup whose images are found, not found, or failed
+Then the `images` section is stored under `imagesCacheKey(term)` = `https://lookup-cache.invalid/v1/images/<encodeURIComponent(term)>` for 30 days (`FOUND_TTL_SECONDS`) or 1 day (`NOT_FOUND_TTL_SECONDS`), and failures aren't stored (API-7…9). `image` and `both` share the entry. The definition and images entries are independent: with `kind=both`, a term whose definition is cached but whose images aren't asks only the image chain.
+
+**API-21: a partial answer isn't kept by the browser**
+Given a `200` with a `failed` section
+Then it has `Cache-Control: no-store`, not API-11's day. Otherwise the browser would answer the reader's Retry with the same failure from its own cache.
+
+**API-22: logs say how the images went, without the term**
+Given a lookup with `kind=image` or `kind=both`
+Then the log entry (API-16) also has `images: { cache: 'hit' | 'miss', outcome: 'found' | 'not-found' | 'failed', reason?, ms }`. `outcome` is the section's status (from the cache, on a hit), `reason` is the image chain's (`commons: HTTP 503`) when it failed, and `ms` is how long the section took. Without images (`kind=definition`, invalid or rate-limited requests), the entry has no `images` key. API-16's rule holds: no term, selection or IP in any field.
+
 ## Notes for implementation
 
 - Test with `createApp(deps).fetch(request, env, ctx)` from `cloudflare:test`, so fake providers and a fake `log` can be passed in. Use `waitOnExecutionContext(ctx)` before reading the cache, because the cache is written with `ctx.waitUntil`. Use a different IP from `203.0.113.0/24` (a documentation range) in each rate-limit test, and a different term in each cache test.
@@ -144,5 +186,5 @@ The entry never contains the term, the raw selection or the IP, in any field (sp
 
 ## Out of scope
 
-- Images (M4); the web client, CSP, timeout and the live check (`lookup-client.md`).
+- The web client, CSP, timeout and the live check (`lookup-client.md`). Showing a failed section and retrying it alone is the modal's job (`lookup-modal.md`, M4).
 - Per-user limits, API keys, and premium entitlements (spec §9).

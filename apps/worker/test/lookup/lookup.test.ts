@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { definitionCacheKey, FOUND_TTL_SECONDS, NOT_FOUND_TTL_SECONDS } from '../../src/cache';
 import {
   FAILED,
+  fakeImages,
   fakeProvider,
   FOUND,
   FOUND_DICTIONARY,
+  IMAGES_FAILED,
   lookupPath,
   NOT_FOUND,
   setUp,
@@ -88,7 +90,7 @@ describe('API-4: sections by kind', () => {
     ]);
   });
 
-  it('image: images are not found until M4, and no definition provider is asked', async () => {
+  it('image: no definition provider is asked', async () => {
     const { get, wiktionary } = withWiktionary();
 
     expect(await (await get(lookupPath('roof', 'image'))).json()).toEqual({
@@ -115,7 +117,9 @@ describe('API-5: upstream failure', () => {
     ['definition', 'purlin'],
     ['both', 'rafter'],
   ])('kind=%s: 502', async (kind, term) => {
-    const { get } = withWiktionary(FAILED);
+    // With kind=both, only if the images failed too (API-18).
+    const wiktionary = fakeProvider('wiktionary', FAILED);
+    const { get } = setUp({ providers: [wiktionary], images: fakeImages(IMAGES_FAILED).images });
 
     const response = await get(lookupPath(term, kind));
 
@@ -123,7 +127,7 @@ describe('API-5: upstream failure', () => {
     expect(await response.json()).toEqual({ error: 'upstream-failed' });
   });
 
-  it('kind=image never asks, so never fails', async () => {
+  it('kind=image never asks the definition providers, so their failure is no 502', async () => {
     const { get } = withWiktionary(FAILED);
 
     expect((await get(lookupPath('roof', 'image'))).status).toBe(200);
