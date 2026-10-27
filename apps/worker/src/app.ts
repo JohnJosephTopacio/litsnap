@@ -1,8 +1,19 @@
 // The Worker's routes. `/lookup` spec: docs/features/lookup-api.md.
-import { Hono } from 'hono';
-import type { HealthResponse, LookupKind } from '@litsnap/shared';
-import { DEFINITION_PROVIDERS } from './definitions/chain';
-import type { DefinitionProvider } from './definitions/types';
+import { Hono, type Context } from 'hono';
+import { cors } from 'hono/cors';
+import {
+  countWords,
+  MAX_LOOKUP_WORDS,
+  normalise,
+  type DefinitionSection,
+  type HealthResponse,
+  type LookupErrorBody,
+  type LookupKind,
+  type LookupResult,
+} from '@litsnap/shared';
+import { readDefinition, storeDefinition } from './cache';
+import { DEFINITION_PROVIDERS, lookupDefinition } from './definitions/chain';
+import { DEFAULT_TIMEOUT_MS, type DefinitionProvider } from './definitions/types';
 import { checkRateLimit, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
@@ -37,6 +48,7 @@ export interface AppDeps {
   log: (entry: LookupLog) => void;
 }
 
+/** What production uses; tests replace some of these (lookup-api.md, "Notes for implementation"). */
 export const DEFAULT_DEPS: AppDeps = {
   providers: DEFINITION_PROVIDERS,
   rateLimit: checkRateLimit,
@@ -45,15 +57,117 @@ export const DEFAULT_DEPS: AppDeps = {
   },
 };
 
-// RED PHASE: `deps` is used by the implementation PR.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const KINDS: readonly string[] = ['definition', 'image', 'both'] satisfies LookupKind[];
+const isKind = (kind: string | undefined): kind is LookupKind =>
+  kind !== undefined && KINDS.includes(kind);
+
+/** Wraps each provider so the log records its outcome and duration, never its term (API-16). */
+const observed = (providers: readonly DefinitionProvider[], entry: LookupLog) =>
+  providers.map((provider): DefinitionProvider => ({
+    name: provider.name,
+    async lookup(term, context) {
+      const started = Date.now();
+      const outcome = await provider.lookup(term, context);
+      entry.providers.push({
+        name: provider.name,
+        outcome: outcome.status,
+        ...(outcome.status === 'failed' && { reason: outcome.reason }),
+        ms: Date.now() - started,
+      });
+      return outcome;
+    },
+  }));
+
 export function createApp(deps: Partial<AppDeps> = {}) {
+  const { providers, rateLimit, log } = { ...DEFAULT_DEPS, ...deps };
   const app = new Hono<{ Bindings: Env }>();
+
+  app.use(
+    '*',
+    cors({
+      origin: (origin) => ((ALLOWED_ORIGINS as readonly string[]).includes(origin) ? origin : null),
+      allowMethods: ['GET'],
+    }),
+  );
 
   app.get('/health', (c) => c.json<HealthResponse>({ status: 'ok', service: 'litsnap-worker' }));
 
-  // RED PHASE: stub until the implementation PR.
-  app.get('/lookup', (c) => c.text('Not implemented yet', 501));
+  app.get('/lookup', async (c) => {
+    const started = Date.now();
+    const entry: LookupLog = {
+      route: 'lookup',
+      status: 0,
+      cache: 'none',
+      rateLimit: 'allowed',
+      ms: 0,
+      providers: [],
+    };
+    const respond = (body: LookupResult | LookupErrorBody, status: 200 | 400 | 429 | 502) => {
+      entry.status = status;
+      entry.ms = Date.now() - started;
+      log(entry);
+      c.header('Cache-Control', status === 200 ? 'public, max-age=86400' : 'no-store');
+      return c.json(body, status);
+    };
+
+    // Every request counts, so this comes first (API-12); if the check fails, go ahead (API-14).
+    try {
+      const verdict = await rateLimit(c.env, c.req.header('CF-Connecting-IP') ?? 'unknown');
+      if (!verdict.allowed) {
+        entry.rateLimit = 'denied';
+        c.header('Retry-After', String(verdict.retryAfterSeconds));
+        return respond({ error: 'rate-limited' }, 429);
+      }
+    } catch {
+      entry.rateLimit = 'error';
+    }
+
+    const kind = c.req.query('kind');
+    const term = normalise(c.req.query('term') ?? '');
+    if (
+      !isKind(kind) ||
+      term === '' ||
+      countWords(term) > MAX_LOOKUP_WORDS ||
+      term.length > MAX_TERM_LENGTH
+    )
+      return respond({ error: 'invalid-request' }, 400);
+    entry.kind = kind;
+
+    const result: LookupResult = { term };
+    if (kind !== 'image') {
+      const definition = await definitionFor(c, term, entry);
+      if (!definition) return respond({ error: 'upstream-failed' }, 502);
+      result.definition = definition;
+    }
+    if (kind !== 'definition') result.images = { status: 'not-found' };
+    return respond(result, 200);
+  });
+
+  /** From the cache, or the providers (then cached); `undefined` if the chain failed. */
+  async function definitionFor(
+    c: Context<{ Bindings: Env }>,
+    term: string,
+    entry: LookupLog,
+  ): Promise<DefinitionSection | undefined> {
+    const cached = await readDefinition(term);
+    if (cached) {
+      entry.cache = 'hit';
+      return cached;
+    }
+    entry.cache = 'miss';
+    const context = {
+      // A wrapper, because calling the global `fetch` detached from `globalThis` throws
+      // "Illegal invocation" in Workers.
+      fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+    };
+    const outcome = await lookupDefinition(term, context, observed(providers, entry));
+    if (outcome.status === 'failed') return undefined;
+    const section: DefinitionSection =
+      outcome.status === 'found' ? { status: 'found', ...outcome.definition } : outcome;
+    c.executionCtx.waitUntil(storeDefinition(term, section));
+    return section;
+  }
 
   return app;
 }

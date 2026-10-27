@@ -1,6 +1,6 @@
 # Feature: Lookup API
 
-> Milestone: M3 · Status: spec + failing tests · Product spec: [spec.md §5, §7, §8](../spec.md#8-architecture) · Decision: [0004](../decisions/0004-lookup-cache-and-rate-limit.md)
+> Milestone: M3 · Status: done (#29, #30) · Product spec: [spec.md §5, §7, §8](../spec.md#8-architecture) · Decision: [0004](../decisions/0004-lookup-cache-and-rate-limit.md)
 
 ## Goal
 
