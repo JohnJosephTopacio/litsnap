@@ -38,7 +38,7 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 > Ready for M3: the modal gets its content from a `LookupClient` (`apps/web/src/lookup/client.ts`). Today `defaultLookupClient` is `undefined` in production ("coming soon") and a mock in `pnpm dev`; M3 replaces it with a client for the Worker. The Worker should re-normalise with `normalise()` from `packages/shared`, and return the draft `LookupResult` there (changing it if needed). The modal's definition section, loading, "not found", error and Retry states are already built and tested against the mock.
 
 - Hono Worker with `/lookup`, provider interface, Wiktionary → dictionaryapi.dev → Wikipedia summary.
-- Specs: [definition-providers](features/definition-providers.md), [lookup-api](features/lookup-api.md). Decision: [0004](decisions/0004-lookup-cache-and-rate-limit.md).
+- Specs: [definition-providers](features/definition-providers.md), [lookup-api](features/lookup-api.md), [lookup-client](features/lookup-client.md). Decisions: [0003](decisions/0003-lookup-api-origin.md), [0004](decisions/0004-lookup-cache-and-rate-limit.md).
 - Cache (30 days) and rate limit (~30/min/IP).
 - Wire the modal to real definitions.
 

@@ -44,10 +44,8 @@ Then it has a **Search Google ↗** link that opens in a new tab (`target="_blan
 
 ### Content
 
-**MODAL-5: production, until M3**
-Given the production build
-When the modal opens
-Then instead of sections it shows _"Definitions and images are coming soon."_, with the header and the Google link as usual. No request is made.
+**MODAL-5: production, until M3** _(superseded by [lookup-client.md](lookup-client.md), CLIENT-11)_
+~~Given the production build, when the modal opens, then instead of sections it shows "Definitions and images are coming soon."~~ Since M3 the production build asks the Worker, and the sections below apply everywhere.
 
 **MODAL-6: loading**
 Given a lookup client
