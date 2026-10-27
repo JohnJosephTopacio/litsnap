@@ -1,6 +1,14 @@
 // The lookup-api tests' helpers must work, so the red tests can only fail for the right reason.
 import { describe, expect, it } from 'vitest';
-import { allowAll, fakeProvider, FOUND, lookupPath, setUp } from './support';
+import {
+  allowAll,
+  fakeImages,
+  fakeProvider,
+  FOUND,
+  IMAGES_FOUND,
+  lookupPath,
+  setUp,
+} from './support';
 
 describe('lookup-api test support', () => {
   it('fakeProvider answers its outcome and records terms', async () => {
@@ -8,6 +16,18 @@ describe('lookup-api test support', () => {
 
     expect(await provider.lookup('roof', { fetch, timeoutMs: 1 })).toBe(FOUND);
     expect(provider.calls).toEqual(['roof']);
+  });
+
+  it('fakeImages answers its outcome, or waits for a function, and records what it was asked', async () => {
+    const fixed = fakeImages(IMAGES_FOUND);
+    const context = { fetch, timeoutMs: 1 };
+
+    expect(await fixed.images('roof', context)).toBe(IMAGES_FOUND);
+    expect(fixed.calls).toEqual(['roof']);
+    expect(fixed.contexts).toEqual([context]);
+    expect(await fakeImages(() => Promise.resolve(IMAGES_FOUND)).images('eave', context)).toBe(
+      IMAGES_FOUND,
+    );
   });
 
   it('allowAll allows', async () => {
