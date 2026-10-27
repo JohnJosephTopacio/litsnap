@@ -18,11 +18,13 @@ function fakeFetch(reply: (init: RequestInit | undefined) => Response | Promise<
   return { fetch, sent };
 }
 
-/** Never answers; rejects with the signal's reason once it's aborted. */
+/** Never answers; rejects with the signal's reason once it's aborted, like `fetch`. */
 const hang = (init: RequestInit | undefined) =>
   new Promise<Response>((_resolve, reject) => {
-    init?.signal?.addEventListener('abort', () => {
-      reject(init.signal?.reason as Error);
+    const signal = init?.signal;
+    if (signal?.aborted) reject(signal.reason as Error);
+    signal?.addEventListener('abort', () => {
+      reject(signal.reason as Error);
     });
   });
 
@@ -37,6 +39,24 @@ describe('CLIENT-1: a lookup', () => {
     expect(fake.sent).toHaveLength(1);
     expect(fake.sent[0]?.request.method).toBe('GET');
     expect(fake.sent[0]?.request.url).toBe(`${BASE}/lookup?term=hipped%20roof&kind=both`);
+  });
+});
+
+describe('CLIENT-1: characters that mean something in a query are encoded', () => {
+  it.each([
+    ['r&b', 'r%26b'],
+    ['a+b', 'a%2Bb'],
+    ['what?', 'what%3F'],
+  ])('%j → %s', async (term, encoded) => {
+    const fake = fakeFetch(() => Response.json(RESULT));
+
+    await createWorkerLookupClient(BASE, { fetch: fake.fetch }).lookup(
+      term,
+      'definition',
+      new AbortController().signal,
+    );
+
+    expect(fake.sent[0]?.request.url).toBe(`${BASE}/lookup?term=${encoded}&kind=definition`);
   });
 });
 
