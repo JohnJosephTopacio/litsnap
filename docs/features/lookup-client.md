@@ -82,7 +82,7 @@ Then it never says _"Definitions and images are coming soon."_ This supersedes M
 Given the `live-check` workflow runs (every Monday, on demand, or on a pull request that changes it or the providers)
 Then it runs:
 
-- `pnpm --filter @litsnap/worker test:live`, which asks the **real** Wiktionary, dictionaryapi.dev and Wikipedia for known terms through our providers (`hip roof` found, `hipped roof` followed to _hip roof_, `nikola tesla` from Wikipedia).
+- `pnpm --filter @litsnap/worker test:live`, which asks the **real** Wiktionary, dictionaryapi.dev and Wikipedia for known terms through our providers (`hip roof` found, `hipped roof` followed to _hip roof_, `nikola tesla` from Wikipedia), and the real Wikipedia, Wikidata and Commons for _Hip roof_'s images through the image sources, including that a 330 px thumbnail on `upload.wikimedia.org` answers with `Access-Control-Allow-Origin: *` ([image-providers.md](image-providers.md)).
 - A request to the deployed Worker's `/health` and one `/lookup`.
 
 If anything changed, the run fails and GitHub emails the owner.

@@ -12,6 +12,7 @@ on:
     paths:
       - .github/workflows/live-check.yml
       - apps/worker/src/definitions/**
+      - apps/worker/src/images/**
       - apps/worker/live/**
 
 permissions:
