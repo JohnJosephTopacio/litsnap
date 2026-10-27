@@ -63,8 +63,8 @@ LitSnap never contains DRM-circumvention code.
 
 1. **Normalise** the selection: trim, strip surrounding punctuation, lowercase, collapse whitespace, treat hyphens as spaces (`"Hipped-Roof,"` → `hipped roof`). The full rules (invisible characters, Unicode, quotes, dashes) are in [lookup-term.md](features/lookup-term.md).
 2. **Dictionary:** Wiktionary (REST API), then dictionaryapi.dev.
-3. **Wikipedia article** with the term as its exact title, following redirects (e.g. `hipped roof` → _Hip roof_): article summary and its lead images. No fuzzy search, which can return loosely related articles; disambiguation pages count as not found. Details in [definition-providers.md](features/definition-providers.md).
-4. **Wikimedia Commons** image search when the article gives too few images.
+3. **Wikipedia article** with the term as its exact title, following redirects (e.g. `hipped roof` → _Hip roof_): its summary and its gallery images. No fuzzy search, which can return loosely related articles; disambiguation pages count as not found. Details in [definition-providers.md](features/definition-providers.md) and [image-providers.md](features/image-providers.md).
+4. **Wikimedia Commons:** the article's own Commons category, when the article gives fewer than 6 freely licensed images. No free-text Commons search, which returns unrelated files for many words.
 5. Nothing found → empty states as in §4.3/§4.4, plus the Google link.
 
 Lookup is **plain** — no AI, no context disambiguation in v1. The source sentence is shown so the reader can judge meaning.

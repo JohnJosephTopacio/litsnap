@@ -1,8 +1,8 @@
 // What a lookup asks for and gets back. Spec: docs/spec.md §4–5; docs/features/lookup-modal.md.
 //
-// DRAFT: `LookupResult` is what the M3 Worker's `/lookup` is expected to return. Definitions are
-// settled (definition-providers.md); M4 (images) may change the rest. Network errors and rate
-// limits are thrown, not results.
+// Definitions are settled (definition-providers.md), and so are images (image-providers.md).
+// M4's lookup-api changes may still add to the sections. Network errors and rate limits are thrown,
+// not results.
 
 /** The selection menu's three choices (MENU-7). */
 export type LookupKind = 'definition' | 'image' | 'both';
@@ -39,11 +39,19 @@ export type FoundDefinition = DictionaryDefinition | WikipediaSummary;
 
 export type DefinitionSection = ({ status: 'found' } & FoundDefinition) | { status: 'not-found' };
 
+/** A freely licensed image from Wikipedia or Commons (docs/features/image-providers.md). */
 export interface LookupImage {
+  /** 330 px wide, or the original if narrower. Always on `upload.wikimedia.org` (IMG-9). */
   thumbUrl: string;
+  /** 1280 px wide, or the original if narrower. */
   fullUrl: string;
-  /** From the image's caption or description (spec §4.4). */
+  /** The article's caption, else the file's description, else its title (IMG-11). */
   alt: string;
+  /** The file's title, which CC 3.0 and earlier ask to be credited. */
+  title: string;
+  /** E.g. `image/gif`, which the modal hides under `prefers-reduced-motion`. */
+  mime: string;
+  /** The original's size, for the placeholder's aspect ratio. */
   width: number;
   height: number;
   attribution: Attribution;
