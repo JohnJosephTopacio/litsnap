@@ -96,31 +96,28 @@ function run(step: Step, reply: Reply, timeoutMs = 1000) {
 
 describe.each(STEPS)('%s', (_name, step) => {
   describe('IMG-1: never throws', () => {
-    it.fails('a network error is a failure', async () => {
+    it('a network error is a failure', async () => {
       expect(await run(step, networkError).outcome).toMatchObject({ status: 'failed' });
     });
   });
 
   describe('IMG-2: requests identify us', () => {
-    it.fails(
-      'every request sends our User-Agent and asks for JSON, at the documented URL',
-      async () => {
-        const { fake, outcome } = run(step, status(404));
-        await outcome;
+    it('every request sends our User-Agent and asks for JSON, at the documented URL', async () => {
+      const { fake, outcome } = run(step, status(404));
+      await outcome;
 
-        expect(fake.urls()).toEqual([...Object.keys(step.before), step.url]);
-        for (const request of fake.requests) {
-          expect(request.headers.get('User-Agent')).toBe(
-            'LitSnap/1.0 (https://github.com/JohnJosephTopacio/litsnap)',
-          );
-          expect(request.headers.get('Accept')).toBe('application/json');
-        }
-      },
-    );
+      expect(fake.urls()).toEqual([...Object.keys(step.before), step.url]);
+      for (const request of fake.requests) {
+        expect(request.headers.get('User-Agent')).toBe(
+          'LitSnap/1.0 (https://github.com/JohnJosephTopacio/litsnap)',
+        );
+        expect(request.headers.get('Accept')).toBe('application/json');
+      }
+    });
   });
 
   describe('IMG-3: a slow source times out', () => {
-    it.fails('aborts the request and fails', async () => {
+    it('aborts the request and fails', async () => {
       const { fake, outcome } = run(step, hang, 20);
 
       expect(await outcome).toMatchObject({ status: 'failed' });
@@ -129,30 +126,30 @@ describe.each(STEPS)('%s', (_name, step) => {
   });
 
   describe('IMG-4: HTTP statuses', () => {
-    it.fails('404 is not found', async () => {
+    it('404 is not found', async () => {
       expect(await run(step, status(404)).outcome).toEqual({ status: 'not-found' });
     });
 
-    it.fails.each([429, 500, 503])('%i is a failure', async (code) => {
+    it.each([429, 500, 503])('%i is a failure', async (code) => {
       expect(await run(step, status(code)).outcome).toMatchObject({ status: 'failed' });
     });
 
-    it.fails('a body that is not JSON is a failure', async () => {
+    it('a body that is not JSON is a failure', async () => {
       expect(await run(step, text('<html>Oops</html>')).outcome).toMatchObject({
         status: 'failed',
       });
     });
 
-    it.fails('JSON of the wrong shape is a failure', async () => {
+    it('JSON of the wrong shape is a failure', async () => {
       expect(await run(step, json(step.wrongShape)).outcome).toMatchObject({ status: 'failed' });
     });
 
     if (step.actionApi) {
-      it.fails('an Action API error is a failure', async () => {
+      it('an Action API error is a failure', async () => {
         expect(await run(step, json(API_ERROR)).outcome).toMatchObject({ status: 'failed' });
       });
     } else {
-      it.fails('400 is an invalid title: not found', async () => {
+      it('400 is an invalid title: not found', async () => {
         expect(await run(step, status(400)).outcome).toEqual({ status: 'not-found' });
       });
     }
@@ -160,7 +157,7 @@ describe.each(STEPS)('%s', (_name, step) => {
 });
 
 describe('IMG-1: the chain never throws', () => {
-  it.fails('a network error is a failure', async () => {
+  it('a network error is a failure', async () => {
     const fake = fakeFetch({ [`${SUMMARY}hipped_roof`]: networkError });
 
     expect(await lookupImages('hipped roof', { fetch: fake.fetch, timeoutMs: 1000 })).toMatchObject(
@@ -191,7 +188,7 @@ describe('IMG-2: the documented URLs, written out', () => {
     );
   });
 
-  it.fails('titles in REST URLs are percent-encoded', async () => {
+  it('titles in REST URLs are percent-encoded', async () => {
     const fake = fakeFetch({
       [`${SUMMARY}caf%C3%A9_au_lait`]: status(404),
       [`${MEDIA_LIST}Caf%C3%A9_au_lait`]: status(404),

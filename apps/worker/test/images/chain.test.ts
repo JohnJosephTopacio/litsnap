@@ -65,7 +65,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
     expect(IMAGE_SOURCES).toEqual([wikipediaImages, commonsImages]);
   });
 
-  it.fails("gives every source the article and keeps the sources' order", async () => {
+  it("gives every source the article and keeps the sources' order", async () => {
     const wikipedia = source('wikipedia', found('A', 'B'));
     const commons = source('commons', found('C', 'D'));
     const { context, outcome } = run(wikipedia, commons);
@@ -81,7 +81,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
     );
   });
 
-  it.fails('drops a file that both sources found', async () => {
+  it('drops a file that both sources found', async () => {
     const { outcome } = run(
       source('wikipedia', found('A', 'B')),
       source('commons', found('B', 'C')),
@@ -90,7 +90,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
     expect(titles(await outcome)).toEqual(['A', 'B', 'C']);
   });
 
-  it.fails('stops at 6', async () => {
+  it('stops at 6', async () => {
     const { outcome } = run(
       source('wikipedia', found('A', 'B', 'C', 'D')),
       source('commons', found('E', 'F', 'G', 'H')),
@@ -99,7 +99,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
     expect(titles(await outcome)).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
   });
 
-  it.fails('asks the sources at the same time', async () => {
+  it('asks the sources at the same time', async () => {
     let finish: (outcome: ImageOutcome) => void = () => undefined;
     const wikipedia = {
       name: 'wikipedia' as const,
@@ -118,7 +118,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
     expect(titles(await outcome)).toEqual(['A', 'C']);
   });
 
-  it.fails('with the real sources: five requests, merged in order', async () => {
+  it('with the real sources: five requests, merged in order', async () => {
     const fake = fakeFetch({
       [ARTICLE_URL]: json(WP_HIP_ROOF),
       [`${MEDIA_LIST}Hip_roof`]: json(mediaList([mediaItem('File:Front_view.jpg')])),
@@ -142,7 +142,7 @@ describe('IMG-14: article images first, then the category, at most 6', () => {
 });
 
 describe('IMG-15: found, not found or failed', () => {
-  it.fails.each([
+  it.each([
     ['not found', status(404), { status: 'not-found' }],
     ['failed', networkError, { status: 'failed' }],
   ])(
@@ -158,7 +158,7 @@ describe('IMG-15: found, not found or failed', () => {
     },
   );
 
-  it.fails.each([
+  it.each([
     ['article images, then a failed category', found('A', 'B', 'C'), FAILED],
     ['no article images, then a failed category', NOT_FOUND, FAILED],
     ['failed article images, then category images', FAILED, found('C')],
@@ -168,7 +168,7 @@ describe('IMG-15: found, not found or failed', () => {
     expect(await outcome).toMatchObject({ status: 'failed' });
   });
 
-  it.fails('6 article images are found even when the category failed', async () => {
+  it('6 article images are found even when the category failed', async () => {
     const { outcome } = run(
       source('wikipedia', found('A', 'B', 'C', 'D', 'E', 'F')),
       source('commons', FAILED),
@@ -177,13 +177,13 @@ describe('IMG-15: found, not found or failed', () => {
     expect(titles(await outcome)).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
   });
 
-  it.fails('category images alone are found', async () => {
+  it('category images alone are found', async () => {
     const { outcome } = run(source('wikipedia', NOT_FOUND), source('commons', found('C')));
 
     expect(titles(await outcome)).toEqual(['C']);
   });
 
-  it.fails('no images anywhere is not found', async () => {
+  it('no images anywhere is not found', async () => {
     const { outcome } = run(source('wikipedia', NOT_FOUND), source('commons', NOT_FOUND));
 
     expect(await outcome).toEqual({ status: 'not-found' });
