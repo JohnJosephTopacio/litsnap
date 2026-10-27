@@ -13,39 +13,41 @@ Your books never leave your device: files, reading progress and lookup history a
 | M0 — Scaffold & pipeline           | ✅ Done                                                                                                                                                                                                    |
 | M1 — EPUB reader                   | ✅ Done: open (picker or drag-and-drop), DRM and invalid-file checks, table of contents, page navigation, progress, reopen where you left off, text size, light/dark theme, paginated/scrolled, Terms page |
 | M2 — Selection menu & lookup modal | ✅ Done: select 1–6 words → Definition / Image / Both menu (or `D`/`I`/`B`) → a modal with the term, the sentence it came from, S/M/L sizes and a Search Google link                                       |
+| M3 — Worker + definitions          | ✅ Done: definitions from Wiktionary, then dictionaryapi.dev, then the Wikipedia summary, through the Worker (cached, 30 lookups a minute per IP)                                                          |
 
-Definitions (M3), images (M4) and PDF (M5) aren't built yet: until M3, the modal says they're coming soon. See [docs/milestones.md](docs/milestones.md) for the roadmap and [docs/spec.md](docs/spec.md) for the product spec.
+Images (M4) and PDF (M5) aren't built yet: for now the modal's Images section says _"No good image found."_ See [docs/milestones.md](docs/milestones.md) for the roadmap and [docs/spec.md](docs/spec.md) for the product spec.
 
 ## How it fits together
 
 ```
  Browser (Cloudflare Pages serves the files + CSP header)      Cloudflare Worker (apps/worker)
 ┌──────────────────────────────────────────────────────┐      ┌───────────────────────────────┐
-│ React app (apps/web)                                 │      │ Today: /health only           │
-│  ├─ foliate-js (vendored) renders the EPUB in a      │ M3:  │ Later: /lookup → dictionaries,│
-│  │  sandboxed iframe, under a strict CSP             │ ───▶ │ Wikipedia, Commons; cache;    │
-│  └─ IndexedDB: books, positions, settings            │ word │ rate limit                    │
-│     (never uploaded)                                 │ only └───────────────────────────────┘
-└──────────────────────────────────────────────────────┘
+│ React app (apps/web)                                 │      │ GET /lookup?term&kind         │
+│  ├─ foliate-js (vendored) renders the EPUB in a      │ term │  1. rate limit (Durable Obj.) │
+│  │  sandboxed iframe, under a strict CSP             │ ───▶ │  2. cache (Cache API, 30 d)   │
+│  └─ IndexedDB: books, positions, settings            │ only │  3. Wiktionary → dictionary-  │
+│     (never uploaded)                                 │ ◀─── │     api.dev → Wikipedia       │
+└──────────────────────────────────────────────────────┘ JSON └───────────────────────────────┘
 ```
 
 - **Books are untrusted content.** A Content Security Policy stops scripts inside books from running and stops books from loading anything from the internet ([decision 0002](docs/decisions/0002-csp-for-book-content.md)). Book text is always rendered as text, never as HTML.
+- **Only the looked-up term leaves the browser.** The CSP lets our code `fetch` exactly one remote origin, the Worker ([decision 0003](docs/decisions/0003-lookup-api-origin.md)). The Worker caches answers and limits each IP to 30 lookups a minute ([decision 0004](docs/decisions/0004-lookup-cache-and-rate-limit.md)).
 - **foliate-js is vendored**, byte-identical to upstream, EPUB code path only ([decision 0001](docs/decisions/0001-vendor-foliate-js.md), [VENDORED.md](apps/web/vendor/foliate-js/VENDORED.md)).
 
 ## Repository layout
 
-| Path                          | What's there                                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `apps/web/src/reader/`        | The reader UI: `App` → `ReaderScreen` (chrome, panels) → `ReaderView` (foliate wrapper); settings, TOC, file checks                        |
-| `apps/web/src/lookup/`        | Lookups: normalising the selection and finding its sentence, the selection menu and its placement, the lookup modal and its `LookupClient` |
-| `apps/web/src/storage/`       | IndexedDB: books, progress, settings (`bookStore`), debounced position saving                                                              |
-| `apps/web/src/epub/`          | `inspectEpub` (DRM / invalid detection) and the in-memory EPUB builder used by tests                                                       |
-| `apps/web/config/`            | Build-time code: the CSP, third-party licence notices, the licence check, the HTML-injection lint rule                                     |
-| `apps/web/e2e/`               | Playwright tests and fixtures                                                                                                              |
-| `apps/web/vendor/foliate-js/` | Vendored foliate-js                                                                                                                        |
-| `apps/worker/`                | Cloudflare Worker (Hono)                                                                                                                   |
-| `packages/shared/`            | Code shared by web and Worker: term normalisation (so both normalise alike) and lookup types                                               |
-| `docs/`                       | Product spec, milestones, feature specs with acceptance criteria, decision records                                                         |
+| Path                          | What's there                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/reader/`        | The reader UI: `App` → `ReaderScreen` (chrome, panels) → `ReaderView` (foliate wrapper); settings, TOC, file checks                                                      |
+| `apps/web/src/lookup/`        | Lookups: normalising the selection and finding its sentence, the selection menu and its placement, the lookup modal and its `LookupClient`                               |
+| `apps/web/src/storage/`       | IndexedDB: books, progress, settings (`bookStore`), debounced position saving                                                                                            |
+| `apps/web/src/epub/`          | `inspectEpub` (DRM / invalid detection) and the in-memory EPUB builder used by tests                                                                                     |
+| `apps/web/config/`            | Build-time code: the CSP, third-party licence notices, the licence check, the HTML-injection lint rule                                                                   |
+| `apps/web/e2e/`               | Playwright tests and fixtures                                                                                                                                            |
+| `apps/web/vendor/foliate-js/` | Vendored foliate-js                                                                                                                                                      |
+| `apps/worker/`                | Cloudflare Worker (Hono): `/lookup` (`app.ts`), cache, the `RateLimiter` Durable Object, definition providers (`definitions/`); `live/`: checks against the real sources |
+| `packages/shared/`            | Code shared by web and Worker: term normalisation (so both normalise alike) and lookup types                                                                             |
+| `docs/`                       | Product spec, milestones, feature specs with acceptance criteria, decision records                                                                                       |
 
 ## Development
 
@@ -55,10 +57,12 @@ Requires Node 24 (see `.nvmrc`) and pnpm.
 pnpm install
 pnpm --filter @litsnap/web exec playwright install chromium   # once, for e2e tests
 
-pnpm dev              # web (Vite) + worker (wrangler dev); lookups use sample data (try "hipped roof")
+pnpm dev              # web (Vite) + worker (wrangler dev, :8787); lookups use the local Worker and the real sources
+                      # VITE_LOOKUP_URL=<worker url> pnpm dev  uses another Worker, e.g. the deployed one
 pnpm check            # format, lint, typecheck, unit tests (what CI runs)
 pnpm check:licenses   # fails on non-permissive production dependencies
 pnpm test:e2e         # Playwright against the built app, with the production CSP
+pnpm --filter @litsnap/worker test:live   # the real dictionary sources (uses the network; also weekly in CI)
 ```
 
 > ⚠️ **Only open books you trust in `pnpm dev`.** EPUBs can contain scripts. In production, a strict Content Security Policy stops them from running ([decision 0002](docs/decisions/0002-csp-for-book-content.md)). The Vite dev server runs **without** that policy, because hot reloading needs an inline script. To try untrusted books locally, use `pnpm --filter @litsnap/web build && pnpm --filter @litsnap/web preview`, which serves the production CSP.
