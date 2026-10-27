@@ -213,7 +213,9 @@ test.describe('closing', () => {
     await page.keyboard.press('Escape');
     await expect(lookupModal(page)).toBeHidden();
 
-    expect(await selectedText(frame)).toBe('');
+    // Esc hides the dialog at once, but its `close` event, which clears the selection, comes a
+    // task later; CI once read the selection 10 ms after Esc, in between.
+    await expect.poll(() => selectedText(frame)).toBe('');
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.tagName))
       .toBe('FOLIATE-VIEW');
