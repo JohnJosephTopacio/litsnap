@@ -30,7 +30,7 @@ const titles = (outcome: Awaited<ReturnType<typeof wikipediaImages.images>>) =>
   outcome.status === 'found' ? outcome.images.map((image) => image.title) : outcome.status;
 
 describe('IMG-12: gallery images, in article order', () => {
-  it.fails('takes gallery images only, and asks for their details in one request', async () => {
+  it('takes gallery images only, and asks for their details in one request', async () => {
     const { fake, outcome } = run(
       [
         mediaItem('File:Front_view.jpg', { leadImage: true }),
@@ -49,7 +49,7 @@ describe('IMG-12: gallery images, in article order', () => {
     ]);
   });
 
-  it.fails("keeps the article's order, not the response's", async () => {
+  it("keeps the article's order, not the response's", async () => {
     const { outcome } = run(
       [mediaItem('File:Zinc_roof.jpg'), mediaItem('File:Attic.jpg'), mediaItem('File:Mill.jpg')],
       ['File:Zinc roof.jpg', 'File:Attic.jpg', 'File:Mill.jpg'],
@@ -63,7 +63,7 @@ describe('IMG-12: gallery images, in article order', () => {
     expect(titles(await outcome)).toEqual(['Zinc roof', 'Attic', 'Mill']);
   });
 
-  it.fails("passes each item's caption for the alt text", async () => {
+  it("passes each item's caption for the alt text", async () => {
     const { outcome } = run(
       [mediaItem('File:Front_view.jpg', { caption: 'The front, from the street' })],
       ['File:Front view.jpg'],
@@ -74,7 +74,7 @@ describe('IMG-12: gallery images, in article order', () => {
     expect(result.status === 'found' && result.images[0]?.alt).toBe('The front, from the street');
   });
 
-  it.fails('drops missing files and files that may not be shown', async () => {
+  it('drops missing files and files that may not be shown', async () => {
     const { outcome } = run(
       [mediaItem('File:Gone.jpg'), mediaItem('File:Logo.png'), mediaItem('File:Side_view.jpg')],
       ['File:Gone.jpg', 'File:Logo.png', 'File:Side view.jpg'],
@@ -88,7 +88,7 @@ describe('IMG-12: gallery images, in article order', () => {
     expect(titles(await outcome)).toEqual(['Side view']);
   });
 
-  it.fails('asks about the first 20 gallery images and finds at most 6', async () => {
+  it('asks about the first 20 gallery images and finds at most 6', async () => {
     const files = Array.from({ length: 25 }, (_, i) => `File:View_${String(i + 1)}.jpg`);
     const asked = files.slice(0, 20).map((file) => file.replaceAll('_', ' '));
     const { outcome } = run(
@@ -107,7 +107,7 @@ describe('IMG-12: gallery images, in article order', () => {
     ]);
   });
 
-  it.fails('none usable is not found', async () => {
+  it('none usable is not found', async () => {
     const { outcome } = run(
       [mediaItem('File:Logo.png')],
       ['File:Logo.png'],
@@ -117,7 +117,7 @@ describe('IMG-12: gallery images, in article order', () => {
     expect(await outcome).toEqual({ status: 'not-found' });
   });
 
-  it.fails('no gallery items is not found, without the details request', async () => {
+  it('no gallery items is not found, without the details request', async () => {
     const fake = fakeFetch({
       [LIST_URL]: json(mediaList([mediaItem('File:Walk.webm', { type: 'video' })])),
     });
