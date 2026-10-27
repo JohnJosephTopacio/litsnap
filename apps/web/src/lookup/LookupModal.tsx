@@ -23,8 +23,7 @@ export interface LookupRequest {
 
 interface LookupModalProps {
   request: LookupRequest;
-  /** Undefined in production until M3: the modal says lookups are coming soon (MODAL-5). */
-  client: LookupClient | undefined;
+  client: LookupClient;
   size: LookupSize;
   onSizeChange: (size: LookupSize) => void;
   onClose: () => void;
@@ -44,12 +43,11 @@ type Lookup =
  * Results are tagged with their attempt, so a new attempt reads as loading until its own result
  * arrives, without setting state synchronously inside the effect.
  */
-function useLookup(client: LookupClient | undefined, term: string, kind: LookupKind) {
+function useLookup(client: LookupClient, term: string, kind: LookupKind) {
   const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState<{ attempt: number; lookup: Lookup }>();
 
   useEffect(() => {
-    if (!client) return;
     const controller = new AbortController();
     const settle = (lookup: Lookup) => {
       if (!controller.signal.aborted) setSettled({ attempt, lookup });
@@ -74,7 +72,7 @@ function useLookup(client: LookupClient | undefined, term: string, kind: LookupK
   return { lookup, retry };
 }
 
-/** Only http(s) links: these URLs will come from the Worker, i.e. from other sites, in M3. */
+/** Only http(s) links: these URLs come from the Worker, i.e. from other sites. */
 const isWebUrl = (url: string | undefined) => !!url && /^https?:\/\//i.test(url);
 
 function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
@@ -251,21 +249,15 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
           {sentence.after}
         </p>
 
-        {client ? (
-          <>
-            {kind !== 'image' && (
-              <Section title="Definition" lookup={lookup} retry={retry}>
-                {(result) => <Definition definition={result.definition} />}
-              </Section>
-            )}
-            {kind !== 'definition' && (
-              <Section title="Images" lookup={lookup} retry={retry}>
-                {(result) => <Images images={result.images} />}
-              </Section>
-            )}
-          </>
-        ) : (
-          <p className="lookup-note">Definitions and images are coming soon.</p>
+        {kind !== 'image' && (
+          <Section title="Definition" lookup={lookup} retry={retry}>
+            {(result) => <Definition definition={result.definition} />}
+          </Section>
+        )}
+        {kind !== 'definition' && (
+          <Section title="Images" lookup={lookup} retry={retry}>
+            {(result) => <Images images={result.images} />}
+          </Section>
         )}
 
         <footer className="lookup-footer">

@@ -1,6 +1,7 @@
-// Lookup modal acceptance criteria from docs/features/lookup-modal.md, against `vite preview`: the
-// production build, so the modal says lookups are coming soon (MODAL-5). The definition section,
-// loading, errors and Retry are tested against the mock client in LookupModal.test.tsx.
+// Lookup modal acceptance criteria from docs/features/lookup-modal.md, against `vite preview` (the
+// production build), with the Worker faked to find nothing. The definition section, loading,
+// errors and Retry are tested against the mock client in LookupModal.test.tsx; definitions from
+// the Worker in lookup-client.spec.ts.
 import { expect, test, type Frame, type Page } from '@playwright/test';
 import {
   dragSelect,
@@ -11,6 +12,11 @@ import {
   selectedText,
 } from './selection';
 import { storedSetting } from './storage';
+import { fakeWorker } from './worker';
+
+test.beforeEach(async ({ page }) => {
+  await fakeWorker(page);
+});
 
 const bottomBar = (page: Page) => page.getByRole('contentinfo', { name: 'Reading progress' });
 const googleLink = (page: Page) => lookupModal(page).getByRole('link', { name: 'Search Google ↗' });
@@ -89,14 +95,6 @@ test.describe('content', () => {
     );
     await expect(googleLink(page)).toHaveAttribute('target', '_blank');
     await expect(googleLink(page)).toHaveAttribute('rel', 'noopener noreferrer');
-  });
-
-  test('MODAL-5: production says lookups are coming soon', async ({ page }) => {
-    const frame = await openLookupBook(page);
-    await lookUp(page, frame, 'hipped', 'roof', 'Both');
-    await expect(lookupModal(page)).toContainText('Definitions and images are coming soon.');
-    await expect(lookupModal(page).getByRole('region')).toHaveCount(0);
-    await expect(lookupModal(page)).not.toContainText('Loading…');
   });
 });
 

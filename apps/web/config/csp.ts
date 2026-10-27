@@ -1,6 +1,9 @@
-// The Content Security Policy for every page: docs/decisions/0002-csp-for-book-content.md.
+// The Content Security Policy for every page: docs/decisions/0002-csp-for-book-content.md, with
+// the lookup Worker allowed in connect-src by docs/decisions/0003-lookup-api-origin.md.
 // Defined once. The build writes it to Cloudflare's `_headers`, and `vite preview` sends it, so
 // Playwright tests run against the policy that ships. The dev server deliberately has none.
+
+import { LOOKUP_ORIGIN } from './lookup';
 
 const directives: Record<string, string[]> = {
   'default-src': ["'none'"],
@@ -10,7 +13,8 @@ const directives: Record<string, string[]> = {
   'img-src': ["'self'", 'blob:', 'data:'],
   'font-src': ["'self'", 'blob:', 'data:'],
   'frame-src': ['blob:'],
-  'connect-src': ["'self'", 'blob:'],
+  // Our code may fetch the lookup Worker; nothing may load from it (decision 0003).
+  'connect-src': ["'self'", 'blob:', LOOKUP_ORIGIN],
   'base-uri': ["'none'"],
   'form-action': ["'none'"],
   'object-src': ["'none'"],
