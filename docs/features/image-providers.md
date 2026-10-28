@@ -172,6 +172,12 @@ Then:
 
 _Changed in #41:_ an incomplete result used to be `failed`. In production, Wikimedia's Action API answered about half its requests with `503` on 2026-10-28, so a Commons failure blanked images the article had.
 
+**IMG-16: a failure says where it happened** _(#42)_
+Given a step fails
+Then its `reason` starts with the request that failed: `summary`, `media-list`, `details` (the article's files), `wikidata` or `category` (the category's files), as in `details: HTTP 503`. For an HTTP error, it ends with Wikimedia's `server` and `Retry-After` headers when the response has them (`HTTP 503 (server mw-api-ext.codfw.main-787d, retry-after 15)`), the server cut to 40 characters. `lookupImages` adds the source's name in front (IMG-15), so a log line reads `wikipedia: details: HTTP 503 (…)`. Reasons are only logged, and never contain the term.
+
+Added after production image lookups failed with `wikipedia: HTTP 503` on 2026-10-28, which didn't say which request Wikimedia refused, or which of its servers answered.
+
 ## Notes for implementation
 
 - Fixtures copy the **structure** of real responses (recorded 2026-10-27) with our own wording, so no third-party text is committed.
