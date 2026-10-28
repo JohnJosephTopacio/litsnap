@@ -323,7 +323,14 @@ export function ReaderView({
       activeDoc.current = undefined;
       markReady(); // let anything queued run (and find no view), rather than wait forever
       view.current = undefined;
-      current?.close();
+      try {
+        current?.close();
+      } catch (error) {
+        // foliate's paginator throws when it's closed before its first section has loaded (its
+        // view doesn't exist yet). Leaving that early is normal (Home, RD-30); a throw here would
+        // unmount the whole app. The element is removed below either way.
+        console.warn('Closed the book before it finished opening', error);
+      }
       current?.remove();
     };
   }, [file, call]);
