@@ -19,6 +19,8 @@ There are two views and no router (the router arrives in M6 with the library pag
 
 Visual styling is test-after polish and not part of the criteria below. The chrome must fit at 375 px wide.
 
+**Since M4.5** the look is [visual-design.md](visual-design.md) and the top bar reads `CONTENTS` · title (centred) · `SETTINGS · OPEN`; the settings also have Lookup size and Controls. The chrome fades out while reading and comes back on hover, a click on blank space, or `Tab`: [reader-chrome.md](reader-chrome.md). The criteria below still hold; the page arrows became the gutters (CHROME-6).
+
 ## Opening a book
 
 ```

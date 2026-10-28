@@ -61,6 +61,22 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Optional follow-ups: give the weekly live check the token as a GitHub secret (it's anonymous, so Wikimedia throttles it now and then); crop grid thumbnails to a uniform box (tall images make uneven rows).
 - Follow-ups, not started: a flaky local run of `apps/web/config/eslint-no-html-injection.test.ts` under load (#34 "Look closely"); `Restrictions` (trademarks, personality rights) on Commons files isn't used (image-providers "Notes").
 
+## M4.5 — UI overhaul
+
+> Planned 2026-10-28 (grilling, then the owner approved a [mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W), private to the owner). Specs: [visual-design](features/visual-design.md), [reader-chrome](features/reader-chrome.md); spec changes to [image-grid](features/image-grid.md) (GRID-3, GRID-10). Decision: [0007](decisions/0007-jost-typeface.md) (Jost). Inserted before M5, so nothing is renumbered.
+
+- **A minimalist look for every surface**, from the owner's inspiration image: a warm paper palette with no accent (`#F6F4EE` / `#111111`, and a warm dark), Jost for our interface, small tracked uppercase labels, hairlines, pill controls, a thin progress gauge. Books keep their fonts; their links become monochrome and underlined.
+- **The reader's chrome hides while reading:** 3 s after a book opens, and comes back when hovering the top or bottom margin, clicking blank space (not text, so double-click still selects), or tabbing to it. Invisible gutters keep turning pages. The book never moves when the chrome toggles. Settings → Controls can keep it shown.
+- **Contrast is a criterion:** `#777777` from the palette fails AA for small text on both backgrounds, so it only draws lines (VIS-2).
+- **PR plan (5):**
+  1. `docs:` this milestone, both specs, decision 0007.
+  2. Tokens, Jost (licence exception), reserved margins, the open screen and the top and bottom bars. Visual, test-after, plus tests for VIS-1…4 and that the book doesn't move.
+  3. Panels, selection menu, lookup modal, square image grid (GRID-10), viewer, Terms page.
+  4. Failing tests (`it.fails`) for the chrome's visibility machine and `isBlankClick`.
+  5. Implementation: those tests flip to `it`, plus Playwright for the rest of reader-chrome.
+- Each PR carries light and dark screenshots. No pixel-snapshot tests (font rendering differs between this machine and CI).
+- M6's "accessibility and visual polish pass" stays, as a final audit after PDF.
+
 ## M5 — PDF
 
 > Ready for M5:
