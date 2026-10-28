@@ -153,7 +153,7 @@ The entry never contains the term, the raw selection or the IP, in any field (sp
 **API-17: the images section**
 Given `kind=image` or `kind=both`
 When the image chain (`deps.images`, `lookupImages` in production) returns `found` or `not-found`
-Then `images` is `{ status: 'found', images }` or `{ status: 'not-found' }`. The chain is given the normalised term and the same `ProviderContext` as the definition providers (`timeoutMs` 3000), plus `detailsTimeoutMs` 10000 for the slow file-details requests (image-providers IMG-3). With `kind=definition`, it isn't asked.
+Then `images` is `{ status: 'found', images }` or `{ status: 'not-found' }`. The chain is given the normalised term and the same `ProviderContext` as the definition providers (`timeoutMs` 3000), plus `detailsTimeoutMs` 10000 for the slow file-details requests (image-providers IMG-3), `wikimediaToken` from the `WIKIMEDIA_TOKEN` secret when it's set, and the Worker's one `CookieJar` (IMG-17, IMG-18; [decision 0006](../decisions/0006-wikimedia-identity.md)). With `kind=definition`, it isn't asked.
 
 **API-18: one section can fail while the other is shown**
 Given `kind=both`

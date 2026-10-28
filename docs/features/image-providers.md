@@ -24,6 +24,7 @@ Decided in the M4 grilling (2026-10-27):
 | `apps/worker/src/images/wikipediaImages.ts` | `wikipediaImages`                                                                                    |
 | `apps/worker/src/images/commonsImages.ts`   | `commonsImages`                                                                                      |
 | `apps/worker/src/images/chain.ts`           | `lookupImages(term, context, sources?)`, `IMAGE_SOURCES`                                             |
+| `apps/worker/src/images/wikimedia.ts`       | `CookieJar`, `actionApiJson(url, context)` (IMG-17, IMG-18)                                          |
 | `packages/shared/src/lookup.ts`             | `LookupImage` (adds `title` and `mime`)                                                              |
 
 ```ts
@@ -177,6 +178,15 @@ Given a step fails
 Then its `reason` starts with the request that failed: `summary`, `media-list`, `details` (the article's files), `wikidata` or `category` (the category's files), as in `details: HTTP 503`. For an HTTP error, it ends with Wikimedia's `server` and `Retry-After` headers when the response has them (`HTTP 503 (server mw-api-ext.codfw.main-787d, retry-after 15)`), the server cut to 40 characters. `lookupImages` adds the source's name in front (IMG-15), so a log line reads `wikipedia: details: HTTP 503 (…)`. Reasons are only logged, and never contain the term.
 
 Added after production image lookups failed with `wikipedia: HTTP 503` on 2026-10-28, which didn't say which request Wikimedia refused, or which of its servers answered.
+
+**IMG-17: Action API requests are authenticated** _(#43, decision 0006)_
+Given `context.wikimediaToken`
+Then the three Action API requests (`details`, `wikidata`, `category`) send `Authorization: Bearer <token>`, and the two REST requests (`summary`, `media-list`) don't: Wikimedia serves those from its cache. Without a token (tests, `pnpm dev`, the live check), no request has an `Authorization` header. The token never appears in a reason or a log.
+
+**IMG-18: Wikimedia's cookies are sent back** _(#43, decision 0006)_
+Given `context.cookies` (a `CookieJar`)
+When an Action API response sets cookies (`Set-Cookie`)
+Then their names and values (no attributes) are kept per site: the last two parts of the host, `wikipedia.org`, `wikimedia.org` or `wikidata.org`. Later Action API requests to the same site send them back in one `Cookie` header, with a later value replacing an earlier one of the same name. They're never sent to another site, and at most 20 are kept per site. Wikimedia's CDN identifies clients by cookie as well as by token. These cookies identify LitSnap's Worker, not a reader.
 
 ## Notes for implementation
 
