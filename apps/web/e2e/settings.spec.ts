@@ -2,6 +2,7 @@
 // from docs/features/epub-reader.md and terms-page.md. Runs against `vite preview` with the
 // production CSP.
 import { expect, test, type Frame, type Page } from '@playwright/test';
+import { TOKENS } from '../src/theme';
 import { bookFrame } from './book';
 import { storedSetting } from './storage';
 import {
@@ -13,8 +14,13 @@ import {
   type FixtureFile,
 } from './fixtures';
 
-const LIGHT = { background: 'rgb(253, 252, 249)', text: 'rgb(31, 29, 26)' };
-const DARK = { background: 'rgb(23, 22, 26)', text: 'rgb(232, 230, 227)' };
+/** `#rrggbb` as the browser reports computed colours. */
+const rgb = (hex: string) =>
+  `rgb(${[1, 3, 5].map((i) => String(parseInt(hex.slice(i, i + 2), 16))).join(', ')})`;
+
+// The paper and ink of each theme (visual-design.md VIS-1, VIS-5).
+const LIGHT = { background: rgb(TOKENS.light.paper), text: rgb(TOKENS.light.ink) };
+const DARK = { background: rgb(TOKENS.dark.paper), text: rgb(TOKENS.dark.ink) };
 const TRANSPARENT = 'rgba(0, 0, 0, 0)';
 
 const bottomBar = (page: Page) => page.getByRole('contentinfo', { name: 'Reading progress' });
@@ -115,7 +121,7 @@ for (const [theme, colors] of [
   ['Light', LIGHT],
   ['Dark', DARK],
 ] as const) {
-  test(`RD-17: the ${theme} theme overrides publisher colours, without inverting images`, async ({
+  test(`RD-17, VIS-5: the ${theme} theme overrides publisher colours and underlines links, without inverting images`, async ({
     page,
   }) => {
     await open(page, colouredEpub());
@@ -128,6 +134,9 @@ for (const [theme, colors] of [
     expect(await style(frame, 'p.note', 'background-color')).toBe(TRANSPARENT);
     expect(await style(frame, 'body', 'color')).toBe(colors.text);
     expect(await style(frame, '#pic', 'filter')).toBe('none');
+    // VIS-5: the publisher's blue, un-underlined link is the text colour, and underlined.
+    expect(await style(frame, '#link', 'color')).toBe(colors.text);
+    expect(await style(frame, '#link', 'text-decoration-line')).toBe('underline');
   });
 }
 

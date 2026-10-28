@@ -39,6 +39,18 @@ describe('bookCss', () => {
     );
   });
 
+  it.each(['light', 'dark'] as const)(
+    'VIS-5: %s links are the text colour and always underlined',
+    (theme) => {
+      const css = bookCss({ fontSize: 100, theme });
+
+      expect(THEME_COLORS[theme].link).toBe(THEME_COLORS[theme].text);
+      expect(css).toMatch(
+        /body a:link, body a:visited \{\s*text-decoration: underline !important;/,
+      );
+    },
+  );
+
   it('RD-17: never filters or inverts images, and leaves fonts alone', () => {
     const css = bookCss({ fontSize: 100, theme: 'dark' });
 

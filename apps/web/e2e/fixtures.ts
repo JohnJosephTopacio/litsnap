@@ -116,7 +116,10 @@ export const textFile = (): FixtureFile => ({
 export const SECOND_TITLE = 'A Second Book';
 export const secondEpub = () => epub('second.epub', buildEpubBytes({ title: SECOND_TITLE }));
 
-/** RD-17: publisher CSS that hard-codes colours, plus an image that must not be inverted. */
+/**
+ * RD-17: publisher CSS that hard-codes colours, plus an image that must not be inverted.
+ * VIS-5: and a link the publisher made blue and took the underline off.
+ */
 export const colouredEpub = () =>
   epub(
     'coloured.epub',
@@ -124,10 +127,10 @@ export const colouredEpub = () =>
       manifest: ['<item id="css" href="style.css" media-type="text/css"/>'],
       files: {
         'OEBPS/style.css':
-          'body { background: #ffeecc; color: #880000; } p.note { color: #008800; background: #eeeeee; }',
+          'body { background: #ffeecc; color: #880000; } p.note { color: #008800; background: #eeeeee; } a { color: #0000ff; text-decoration: none; }',
         'OEBPS/chapter1.xhtml': chapter(
           '<link rel="stylesheet" href="style.css"/>',
-          `<p>Plain paragraph.</p><p class="note">Coloured paragraph.</p>
+          `<p>Plain paragraph.</p><p class="note">Coloured paragraph.</p><p><a id="link" href="#pic">A link.</a></p>
 <img id="pic" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/>`,
         ),
       },
