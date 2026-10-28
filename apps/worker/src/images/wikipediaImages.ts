@@ -7,8 +7,11 @@ import { MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
 
 const MEDIA_LIST = 'https://en.wikipedia.org/api/rest_v1/page/media-list/';
 const API = 'https://en.wikipedia.org/w/api.php';
-/** Asked about in one request: enough to fill the grid after the licence filter. */
-const CANDIDATES = 20;
+/**
+ * Asked about in one request: enough to fill the grid after the licence filter. Wikimedia's first
+ * answer slows down with each file (20 took 10 s), so not more (IMG-12).
+ */
+const CANDIDATES = 10;
 
 const NOT_FOUND: ImageOutcome = { status: 'not-found' };
 

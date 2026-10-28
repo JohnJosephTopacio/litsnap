@@ -159,22 +159,52 @@ describe('IMG-15: found, not found or failed', () => {
   );
 
   it.each([
-    ['article images, then a failed category', found('A', 'B', 'C'), FAILED],
-    ['no article images, then a failed category', NOT_FOUND, FAILED],
-    ['failed article images, then category images', FAILED, found('C')],
-  ])('%s: failed', async (_name, wikipedia, commons) => {
-    const { outcome } = run(source('wikipedia', wikipedia), source('commons', commons));
+    [
+      'article images, then a failed category',
+      found('A', 'B', 'C'),
+      FAILED,
+      ['A', 'B', 'C'],
+      'commons: HTTP 503',
+    ],
+    [
+      'failed article images, then category images',
+      FAILED,
+      found('C'),
+      ['C'],
+      'wikipedia: HTTP 503',
+    ],
+  ])(
+    '%s: the images found, marked incomplete',
+    async (_name, wikipedia, commons, names, reason) => {
+      const { outcome } = run(source('wikipedia', wikipedia), source('commons', commons));
+
+      const result = await outcome;
+      expect(titles(result)).toEqual(names);
+      expect(result).toMatchObject({ incomplete: { reason } });
+    },
+  );
+
+  it('no images, and a failed source: failed', async () => {
+    const { outcome } = run(source('wikipedia', NOT_FOUND), source('commons', FAILED));
 
     expect(await outcome).toMatchObject({ status: 'failed' });
   });
 
-  it('6 article images are found even when the category failed', async () => {
+  it('6 article images are found, complete, even when the category failed', async () => {
     const { outcome } = run(
       source('wikipedia', found('A', 'B', 'C', 'D', 'E', 'F')),
       source('commons', FAILED),
     );
 
-    expect(titles(await outcome)).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
+    const result = await outcome;
+    expect(titles(result)).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
+    expect(result).not.toHaveProperty('incomplete');
+  });
+
+  it('a result where every source answered is not incomplete', async () => {
+    const { outcome } = run(source('wikipedia', found('A')), source('commons', NOT_FOUND));
+
+    expect(await outcome).not.toHaveProperty('incomplete');
   });
 
   it('category images alone are found', async () => {

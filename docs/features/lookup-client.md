@@ -13,7 +13,7 @@ The modal's sections, loading, error and Retry states are unchanged ([lookup-mod
 | Module                                | Exports                                                                                           |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `apps/web/config/lookup.ts`           | `LOOKUP_ORIGIN`: the production Worker's origin, used by the CSP too                              |
-| `apps/web/src/lookup/workerClient.ts` | `createWorkerLookupClient(baseUrl, options?)`, `lookupBaseUrl(env)`, `LOOKUP_TIMEOUT_MS` (15 000) |
+| `apps/web/src/lookup/workerClient.ts` | `createWorkerLookupClient(baseUrl, options?)`, `lookupBaseUrl(env)`, `LOOKUP_TIMEOUT_MS` (20 000) |
 | `apps/web/src/lookup/client.ts`       | `defaultLookupClient`: the Worker client (no longer `undefined`)                                  |
 | `.github/workflows/live-check.yml`    | Weekly and on-demand check of the live sources and the deployed Worker                            |
 
@@ -37,8 +37,8 @@ Given `fetch` rejects (offline, DNS, CORS)
 Then the lookup rejects.
 
 **CLIENT-4: a slow Worker times out**
-Given the Worker hasn't answered after `LOOKUP_TIMEOUT_MS` (15 seconds)
-Then the request is aborted and the lookup rejects. The Worker's own worst case is about 12 seconds (three providers × 3 s, plus one follow), so this only catches a hung connection.
+Given the Worker hasn't answered after `LOOKUP_TIMEOUT_MS` (20 seconds; 15 until #41, when image lookups got 10 seconds for file details)
+Then the request is aborted and the lookup rejects. The Worker's own worst case is about 16 seconds (an image lookup: 3 + 3 + 10 s for file details; definitions take at most 12), so this only catches a hung connection.
 
 **CLIENT-5: closing cancels**
 Given the caller aborts the signal (MODAL-11: the modal closed)

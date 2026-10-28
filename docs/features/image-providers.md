@@ -38,7 +38,8 @@ type ArticleOutcome =
   | { status: 'failed'; reason: string };
 
 type ImageOutcome =
-  | { status: 'found'; images: LookupImage[] } // 1 to MAX_IMAGES
+  // 1 to MAX_IMAGES. `incomplete`: a source failed before the grid was full (IMG-15).
+  | { status: 'found'; images: LookupImage[]; incomplete?: { reason: string } }
   | { status: 'not-found' }
   | { status: 'failed'; reason: string }; // for logs, never shown to readers
 
@@ -59,7 +60,7 @@ interface LookupImage {
 }
 ```
 
-`ProviderContext` (`fetch`, `timeoutMs`) is the definition providers' (`definitions/types.ts`).
+`ProviderContext` (`fetch`, `timeoutMs`) is the definition providers' (`definitions/types.ts`), with an optional `detailsTimeoutMs` for the slow file-details requests (IMG-3).
 
 ### Upstream requests
 
@@ -69,7 +70,7 @@ interface LookupImage {
 | The article's images   | `https://en.wikipedia.org/api/rest_v1/page/media-list/<title>`                                                                                                             |
 | File details (article) | `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&titles=<File:A\|File:B…>&<FILE_DETAILS>`                                                      |
 | The Commons category   | `https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&entity=<Q…>&property=P373`                                                                              |
-| The category's files   | `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&generator=categorymembers&gcmtitle=<Category:…>&gcmtype=file&gcmlimit=20&<FILE_DETAILS>` |
+| The category's files   | `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&generator=categorymembers&gcmtitle=<Category:…>&gcmtype=file&gcmlimit=10&<FILE_DETAILS>` |
 
 `FILE_DETAILS` is, in this order:
 
@@ -96,8 +97,8 @@ Given any request in the table above
 Then it has `User-Agent: LitSnap/1.0 (https://github.com/JohnJosephTopacio/litsnap)` and `Accept: application/json` (DEF-2), and its URL is exactly as above. Titles go into REST URLs as in DEF-2 (`Hip_roof`, percent-encoded).
 
 **IMG-3: a slow source times out**
-Given a request hasn't answered after `timeoutMs`
-Then it's aborted and the step returns `failed` (DEF-3).
+Given a request hasn't answered after `timeoutMs`, or a file-details request (the article's or the category's) after `detailsTimeoutMs` (`timeoutMs` if not given)
+Then it's aborted and the step returns `failed` (DEF-3). Production gives file details **10 seconds** (`DETAILS_TIMEOUT_MS`) and everything else 3: the first request for a set of files makes Wikimedia generate their licence metadata, which took 0.5–10 seconds for 6–20 files (measured 2026-10-28, #41). Asked again, the same request takes about 50 ms.
 
 **IMG-4: HTTP statuses**
 Given `404`, or `400` from a REST endpoint (an invalid title)
@@ -145,28 +146,31 @@ Then `title` is the plain text of `ObjectName`, or the file name without `File:`
 **IMG-12: gallery images, in article order**
 Given the media-list response's `items`
 When `wikipediaImages` runs
-Then it takes the items with `type: "image"` and `showInGallery: true`, in their order, and asks for the details of the first 20 in one request (titles with `_` as spaces, joined by `|`). It keeps the results in the media-list's order, not the response's, passing each item's `caption.text` to `toLookupImage`. Files that are `missing` or `undefined` are dropped, and the first `MAX_IMAGES` are found. With none, it's `not-found`, without the details request if there were no gallery items.
+Then it takes the items with `type: "image"` and `showInGallery: true`, in their order, and asks for the details of the first 10 (`CANDIDATES`) in one request (titles with `_` as spaces, joined by `|`). It keeps the results in the media-list's order, not the response's, passing each item's `caption.text` to `toLookupImage`. Files that are `missing` or `undefined` are dropped, and the first `MAX_IMAGES` are found. With none, it's `not-found`, without the details request if there were no gallery items.
 
 ### The Commons category
 
 **IMG-13: the article's Commons category**
 Given the article's `wikidataId`
 When `commonsImages` runs
-Then it reads the first `P373` (Commons category) claim's string value from Wikidata, and asks Commons for that category's first 20 files, with their details, in one request. It keeps them sorted by title, drops `undefined`s and returns the first `MAX_IMAGES`. Subcategories aren't searched. With no `wikidataId`, it's `not-found` without a request. With no `P373` claim, it's `not-found` without the Commons request. A category without files answers with no `query` key, and that's `not-found` too.
+Then it reads the first `P373` (Commons category) claim's string value from Wikidata, and asks Commons for that category's first 10 files, with their details, in one request. It keeps them sorted by title, drops `undefined`s and returns the first `MAX_IMAGES`. Subcategories aren't searched. With no `wikidataId`, it's `not-found` without a request. With no `P373` claim, it's `not-found` without the Commons request. A category without files answers with no `query` key, and that's `not-found` too.
 
 ### The chain
 
 **IMG-14: article images first, then the category, at most 6**
 Given `lookupImages` finds the article
-Then it asks every source in `IMAGE_SOURCES` (`wikipediaImages`, then `commonsImages`) **at the same time**, and returns their images in that order, dropping a file that appears twice (same `sourceUrl`), up to `MAX_IMAGES`. Running the sources in parallel costs a Commons request that the article sometimes makes unnecessary, but keeps a lookup to three rounds of requests (article; media-list and Wikidata; details and category), 9 seconds at worst, inside the client's 15 (CLIENT).
+Then it asks every source in `IMAGE_SOURCES` (`wikipediaImages`, then `commonsImages`) **at the same time**, and returns their images in that order, dropping a file that appears twice (same `sourceUrl`), up to `MAX_IMAGES`. Running the sources in parallel costs a Commons request that the article sometimes makes unnecessary, but keeps a lookup to three rounds of requests (article; media-list and Wikidata; details and category): 3 + 3 + 10 = 16 seconds at worst, inside the client's 20 (CLIENT-4).
 
 **IMG-15: found, not found or failed**
 Given the sources' outcomes
 Then:
 
 - If the article step is `not-found` or `failed`, so is the result, and no source is asked.
-- If a source `failed` and the sources before it didn't already give `MAX_IMAGES` images, the result is `failed`. A failure might have hidden images, so the result mustn't be cached as complete (DEF-19). Article images alone filling the grid are still found when Commons is down.
+- If a source `failed` before the grid was full (the sources before it gave fewer than `MAX_IMAGES`), the images found so far are still shown: `found`, with `incomplete: { reason }` (the failed source's name and reason). A failure might have hidden images, so `lookup-api.md` caches such a result for 1 day, not 30 (API-20). With no images at all, it's `failed`, as DEF-19.
+- A failure after the grid was full doesn't matter: `found`, not `incomplete`.
 - Otherwise, with at least one image, it's `found`, and with none, `not-found`.
+
+_Changed in #41:_ an incomplete result used to be `failed`. In production, Wikimedia's Action API answered about half its requests with `503` on 2026-10-28, so a Commons failure blanked images the article had.
 
 ## Notes for implementation
 

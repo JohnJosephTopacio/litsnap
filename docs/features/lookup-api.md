@@ -153,7 +153,7 @@ The entry never contains the term, the raw selection or the IP, in any field (sp
 **API-17: the images section**
 Given `kind=image` or `kind=both`
 When the image chain (`deps.images`, `lookupImages` in production) returns `found` or `not-found`
-Then `images` is `{ status: 'found', images }` or `{ status: 'not-found' }`. The chain is given the normalised term and the same `ProviderContext` as the definition providers (`timeoutMs` 3000). With `kind=definition`, it isn't asked.
+Then `images` is `{ status: 'found', images }` or `{ status: 'not-found' }`. The chain is given the normalised term and the same `ProviderContext` as the definition providers (`timeoutMs` 3000), plus `detailsTimeoutMs` 10000 for the slow file-details requests (image-providers IMG-3). With `kind=definition`, it isn't asked.
 
 **API-18: one section can fail while the other is shown**
 Given `kind=both`
@@ -164,11 +164,11 @@ Then the response is `502 { error: 'upstream-failed' }`, as API-5.
 
 **API-19: both sections are looked up at the same time**
 Given `kind=both`, and neither section is cached
-Then the definition chain and the image chain run in parallel. Each can take up to three rounds of 3-second requests, so one after the other could pass the client's 15-second limit (CLIENT).
+Then the definition chain and the image chain run in parallel. The definition chain can take up to four 3-second requests and the image chain 3 + 3 + 10 seconds, so one after the other could pass the client's 20-second limit (CLIENT-4).
 
 **API-20: images are cached like definitions**
 Given a lookup whose images are found, not found, or failed
-Then the `images` section is stored under `imagesCacheKey(term)` = `https://lookup-cache.invalid/v1/images/<encodeURIComponent(term)>` for 30 days (`FOUND_TTL_SECONDS`) or 1 day (`NOT_FOUND_TTL_SECONDS`), and failures aren't stored (API-7…9). `image` and `both` share the entry. The definition and images entries are independent: with `kind=both`, a term whose definition is cached but whose images aren't asks only the image chain.
+Then the `images` section is stored under `imagesCacheKey(term)` = `https://lookup-cache.invalid/v1/images/<encodeURIComponent(term)>` for 30 days (`FOUND_TTL_SECONDS`) or 1 day (`NOT_FOUND_TTL_SECONDS`), and failures aren't stored (API-7…9). Found images that are `incomplete` (IMG-15: a source failed) are stored for 1 day, like not-found, so the missing ones can arrive tomorrow. The reader gets `{ status: 'found', images }`, without `incomplete`. `image` and `both` share the entry. The definition and images entries are independent: with `kind=both`, a term whose definition is cached but whose images aren't asks only the image chain.
 
 **API-21: a partial answer isn't kept by the browser**
 Given a `200` with a `failed` section
@@ -176,7 +176,7 @@ Then it has `Cache-Control: no-store`, not API-11's day. Otherwise the browser w
 
 **API-22: logs say how the images went, without the term**
 Given a lookup with `kind=image` or `kind=both`
-Then the log entry (API-16) also has `images: { cache: 'hit' | 'miss', outcome: 'found' | 'not-found' | 'failed', reason?, ms }`. `outcome` is the section's status (from the cache, on a hit), `reason` is the image chain's (`commons: HTTP 503`) when it failed, and `ms` is how long the section took. Without images (`kind=definition`, invalid or rate-limited requests), the entry has no `images` key. API-16's rule holds: no term, selection or IP in any field.
+Then the log entry (API-16) also has `images: { cache: 'hit' | 'miss', outcome: 'found' | 'not-found' | 'failed', reason?, ms }`. `outcome` is the section's status (from the cache, on a hit), `reason` is the image chain's (`commons: HTTP 503`) when it failed or its result is `incomplete`, and `ms` is how long the section took. Without images (`kind=definition`, invalid or rate-limited requests), the entry has no `images` key. API-16's rule holds: no term, selection or IP in any field.
 
 ## Notes for implementation
 

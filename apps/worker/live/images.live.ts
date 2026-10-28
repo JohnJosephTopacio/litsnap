@@ -5,15 +5,17 @@
 import type { LookupImage } from '@litsnap/shared';
 import { describe, expect, it } from 'vitest';
 import { USER_AGENT } from '../src/definitions/http';
-import type { ProviderContext } from '../src/definitions/types';
+import { DEFAULT_TIMEOUT_MS, type ProviderContext } from '../src/definitions/types';
 import { lookupImages } from '../src/images/chain';
 import { commonsImages } from '../src/images/commonsImages';
+import { DETAILS_TIMEOUT_MS } from '../src/images/types';
 import { wikipediaImages } from '../src/images/wikipediaImages';
 
-// Longer than production's 3 s: a slow day upstream shouldn't fail the check.
+// Production's timeouts: a 10 s allowance once hid that file details took longer than 3 s (#41).
 const context: ProviderContext = {
   fetch: (input, init) => fetch(input, init),
-  timeoutMs: 10_000,
+  timeoutMs: DEFAULT_TIMEOUT_MS,
+  detailsTimeoutMs: DETAILS_TIMEOUT_MS,
 };
 
 const HIP_ROOF = { title: 'Hip roof', wikidataId: 'Q162034' };

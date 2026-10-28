@@ -88,9 +88,9 @@ describe('IMG-12: gallery images, in article order', () => {
     expect(titles(await outcome)).toEqual(['Side view']);
   });
 
-  it('asks about the first 20 gallery images and finds at most 6', async () => {
+  it('asks about the first 10 gallery images and finds at most 6', async () => {
     const files = Array.from({ length: 25 }, (_, i) => `File:View_${String(i + 1)}.jpg`);
-    const asked = files.slice(0, 20).map((file) => file.replaceAll('_', ' '));
+    const asked = files.slice(0, 10).map((file) => file.replaceAll('_', ' '));
     const { outcome } = run(
       files.map((file) => mediaItem(file)),
       asked,

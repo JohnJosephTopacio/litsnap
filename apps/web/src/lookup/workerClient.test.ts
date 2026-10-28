@@ -87,8 +87,8 @@ describe('CLIENT-4: a slow Worker times out', () => {
     expect(fake.sent[0]?.init?.signal?.aborted).toBe(true);
   });
 
-  it('waits 15 seconds in production', () => {
-    expect(LOOKUP_TIMEOUT_MS).toBe(15_000);
+  it('waits 20 seconds in production', () => {
+    expect(LOOKUP_TIMEOUT_MS).toBe(20_000);
   });
 });
 

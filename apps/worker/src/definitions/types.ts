@@ -9,6 +9,8 @@ export interface ProviderContext {
   fetch: typeof fetch;
   /** Per upstream request (DEF-3). */
   timeoutMs: number;
+  /** For image file details, which Wikimedia is slow to make the first time (IMG-3). Defaults to `timeoutMs`. */
+  detailsTimeoutMs?: number;
 }
 
 /** `reason` is for logs, never shown to readers. */

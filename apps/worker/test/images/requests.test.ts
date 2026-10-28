@@ -34,6 +34,8 @@ interface Step {
   wrongShape: unknown;
   /** The Action API reports errors with a 200 (IMG-4). */
   actionApi: boolean;
+  /** A file-details request, which gets `detailsTimeoutMs` (IMG-3). */
+  details?: boolean;
 }
 
 const STEPS: [string, Step][] = [
@@ -65,6 +67,7 @@ const STEPS: [string, Step][] = [
       url: DETAILS_URL,
       wrongShape: { query: { pages: 'none' } },
       actionApi: true,
+      details: true,
     },
   ],
   [
@@ -85,14 +88,22 @@ const STEPS: [string, Step][] = [
       url: CATEGORY_URL,
       wrongShape: { query: { pages: 'none' } },
       actionApi: true,
+      details: true,
     },
   ],
 ];
 
-function run(step: Step, reply: Reply, timeoutMs = 1000) {
+function run(step: Step, reply: Reply, timeoutMs = 1000, detailsTimeoutMs?: number) {
   const fake = fakeFetch({ ...step.before, [step.url]: reply });
-  return { fake, outcome: step.run({ fetch: fake.fetch, timeoutMs }) };
+  const context: ProviderContext = { fetch: fake.fetch, timeoutMs };
+  if (detailsTimeoutMs !== undefined) context.detailsTimeoutMs = detailsTimeoutMs;
+  return { fake, outcome: step.run(context) };
 }
+
+const wait = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 describe.each(STEPS)('%s', (_name, step) => {
   describe('IMG-1: never throws', () => {
@@ -123,6 +134,20 @@ describe.each(STEPS)('%s', (_name, step) => {
       expect(await outcome).toMatchObject({ status: 'failed' });
       expect(fake.requests.at(-1)?.signal?.aborted).toBe(true);
     });
+
+    it(
+      step.details
+        ? 'waits detailsTimeoutMs, not timeoutMs: file details are slow'
+        : 'waits timeoutMs, whatever detailsTimeoutMs is',
+      async () => {
+        const { fake, outcome } = run(step, hang, 20, 300);
+        const failed = outcome.then(({ status }) => status);
+
+        await wait(150);
+        expect(fake.requests.at(-1)?.signal?.aborted).toBe(!step.details);
+        expect(await failed).toBe('failed');
+      },
+    );
   });
 
   describe('IMG-4: HTTP statuses', () => {
@@ -181,7 +206,7 @@ describe('IMG-2: the documented URLs, written out', () => {
   it("the category's files", () => {
     expect(categoryUrl('Hipped roofs')).toBe(
       'https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2' +
-        '&generator=categorymembers&gcmtitle=Category%3AHipped+roofs&gcmtype=file&gcmlimit=20' +
+        '&generator=categorymembers&gcmtitle=Category%3AHipped+roofs&gcmtype=file&gcmlimit=10' +
         '&prop=imageinfo&iiprop=url%7Csize%7Cmime%7Cextmetadata&iiurlwidth=330' +
         '&iiextmetadatalanguage=en&iiextmetadatafilter=ObjectName%7CImageDescription%7CArtist' +
         '%7CAttribution%7CLicenseShortName%7CLicenseUrl%7CLicense%7CNonFree',
