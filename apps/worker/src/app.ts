@@ -22,7 +22,7 @@ import {
 import { lookupImages } from './images/chain';
 import { DETAILS_TIMEOUT_MS, type ImageOutcome } from './images/types';
 import { CookieJar } from './images/wikimedia';
-import { checkRateLimit, type RateVerdict } from './rateLimit';
+import { checkImageBudget, checkRateLimit, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
 export const ALLOWED_ORIGINS = [
@@ -65,6 +65,8 @@ export interface AppDeps {
   /** The image chain (API-17). */
   images: (term: string, context: ProviderContext) => Promise<ImageOutcome>;
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>;
+  /** The budget for uncached image lookups, shared by everyone (API-24). RED PHASE: not used yet. */
+  imageBudget: (env: Env) => Promise<RateVerdict>;
   log: (entry: LookupLog) => void;
 }
 
@@ -73,6 +75,7 @@ export const DEFAULT_DEPS: AppDeps = {
   providers: DEFINITION_PROVIDERS,
   images: lookupImages,
   rateLimit: checkRateLimit,
+  imageBudget: checkImageBudget,
   log: (entry) => {
     console.log(JSON.stringify(entry));
   },
