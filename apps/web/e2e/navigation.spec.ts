@@ -140,7 +140,7 @@ test('RD-9: a saved position that no longer resolves falls back to its fraction'
   expect(await percent(page)).toBeLessThanOrEqual(55);
 });
 
-test('RD-10: if the current book is no longer stored, the open screen shows, quietly', async ({
+test('RD-10, RD-32: if the current book is no longer stored, the open screen shows, quietly', async ({
   page,
 }) => {
   await page.goto('/');
@@ -151,6 +151,8 @@ test('RD-10: if the current book is no longer stored, the open screen shows, qui
 
   await expect(page.getByRole('button', { name: 'Open a book' })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
+  // RD-32: and no Continue reading for a book that isn't there.
+  await expect(page.getByRole('button', { name: 'Continue reading' })).toHaveCount(0);
 });
 
 test('RD-11: if the stored book is broken, the open screen asks for the file again', async ({

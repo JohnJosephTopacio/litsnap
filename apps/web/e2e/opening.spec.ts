@@ -19,8 +19,8 @@ async function pick(page: Page, file: string | FixtureFile) {
   await page.locator('input[type="file"]').setInputFiles(file);
 }
 
-/** Simulates dragging a file from the desktop and dropping it on the open screen. */
-async function drop(page: Page, file: FixtureFile) {
+/** Simulates dragging a file from the desktop and dropping it (by default, on the open screen). */
+async function drop(page: Page, file: FixtureFile, target = '.drop-zone') {
   const dataTransfer = await page.evaluateHandle(
     ({ base64, name, mimeType }) => {
       const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -30,8 +30,8 @@ async function drop(page: Page, file: FixtureFile) {
     },
     { base64: file.buffer.toString('base64'), name: file.name, mimeType: file.mimeType },
   );
-  await page.locator('.drop-zone').dispatchEvent('dragover', { dataTransfer });
-  await page.locator('.drop-zone').dispatchEvent('drop', { dataTransfer });
+  await page.locator(target).dispatchEvent('dragover', { dataTransfer });
+  await page.locator(target).dispatchEvent('drop', { dataTransfer });
 }
 
 const jekyllFile = (): FixtureFile => ({
@@ -120,11 +120,12 @@ test('RD-6: when storage is full, the book still opens, unsaved, with a message'
   expect((await stored(page)).titles).toEqual([]);
 });
 
-test('RD-7: "Open another book" opens it and makes it current', async ({ page }) => {
+test('RD-7: going Home and opening another book makes it current', async ({ page }) => {
   await pick(page, JEKYLL);
   await expect.poll(async () => (await stored(page)).current).toEqual({ title: JEKYLL_TITLE });
 
-  await page.getByRole('button', { name: 'Open another book' }).click();
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open a book' })).toBeVisible();
   await pick(page, secondEpub());
 
   await expect(page.getByRole('heading', { level: 1, name: SECOND_TITLE })).toBeVisible();
@@ -136,11 +137,12 @@ test('RD-7: "Open another book" opens it and makes it current', async ({ page })
     });
 });
 
-test('choosing a rejected file while reading keeps the current book open', async ({ page }) => {
+test('dropping a rejected file while reading keeps the current book open', async ({ page }) => {
   await pick(page, JEKYLL);
   await expect(page.getByRole('heading', { level: 1, name: JEKYLL_TITLE })).toBeVisible();
 
-  await pick(page, fakeDrmEpub());
+  // RD-26: the reader's only way to open a file since Home replaced Open (RD-30).
+  await drop(page, fakeDrmEpub(), '.top-bar');
 
   await expect(page.getByRole('alert')).toContainText('DRM-protected');
   await expect(page.getByRole('heading', { level: 1, name: JEKYLL_TITLE })).toBeVisible();

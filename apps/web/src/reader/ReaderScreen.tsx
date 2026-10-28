@@ -30,7 +30,8 @@ interface ReaderScreenProps {
   theme: Theme;
   /** Messages to show above the book (e.g. storage full). */
   status: ReactNode;
-  onChooseFile: () => void;
+  /** RD-30: back to the start screen. */
+  onHome: () => void;
   onDropFile: (file: File) => void;
   onSettingsChange: (patch: Partial<Settings>) => void;
   onOpen: (file: File, metadata: BookMetadata | undefined) => void;
@@ -264,14 +265,8 @@ export function ReaderScreen(props: ReaderScreenProps) {
             Settings
           </button>
           <span aria-hidden="true">·</span>
-          {/* VIS-6: the visible word starts the accessible name (WCAG 2.5.3). */}
-          <button
-            type="button"
-            className="bar-button"
-            aria-label="Open another book"
-            onClick={props.onChooseFile}
-          >
-            Open
+          <button type="button" className="bar-button" onClick={props.onHome}>
+            Home
           </button>
         </div>
       </header>

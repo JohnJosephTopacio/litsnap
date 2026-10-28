@@ -43,6 +43,8 @@ async function currentBook(): Promise<AppBook | undefined> {
 
 export function App() {
   const [book, setBook] = useState<AppBook>();
+  // The stored current book, offered as Continue reading on the start screen (RD-32).
+  const [resumable, setResumable] = useState<{ title: string }>();
   const [starting, setStarting] = useState(true);
   const [notice, setNotice] = useState<NoticeKind>();
   const [checking, setChecking] = useState(false);
@@ -57,12 +59,15 @@ export function App() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  // On start, go straight back into the last book without showing the open screen (RD-8).
+  // On start, go straight back into the last book without showing the open screen (RD-8), unless
+  // the reader left from the start screen (RD-31): then offer it as Continue reading.
   useEffect(() => {
     let cancelled = false;
-    currentBook()
-      .then((found) => {
-        if (!cancelled && found) setBook(found);
+    Promise.all([currentBook(), appStore().then((store) => store.getLeftAtStart())])
+      .then(([found, leftAtStart]) => {
+        if (cancelled || !found) return;
+        if (leftAtStart) setResumable({ title: found.title });
+        else setBook(found);
       })
       .catch(console.error)
       .finally(() => {
@@ -86,7 +91,11 @@ export function App() {
       }
       // Re-opening a file LitSnap has seen before resumes where the reader left off (STO-3).
       const id = await bookId(file);
-      const progress = await (await appStore()).getProgress(id);
+      const store = await appStore();
+      const progress = await store.getProgress(id);
+      // RD-31: a reload now goes back into this book. Not awaited: when storage is full the
+      // write fails, and the book must open anyway (RD-6).
+      store.setLeftAtStart(false).catch(console.error);
       setBook({
         id,
         file,
@@ -133,6 +142,7 @@ export function App() {
     // A stored book that no longer opens gets its own message (RD-11).
     setNotice(reopened ? 'reopen-failed' : 'invalid');
     setBook(undefined);
+    if (reopened) setResumable(undefined); // Continue reading would only fail again
   }, [reopened]);
 
   const fileInput = (
@@ -145,6 +155,27 @@ export function App() {
     />
   );
   const chooseFile = () => input.current?.click();
+
+  /** RD-30: back to the start screen. ReaderScreen saves the position as it closes (STO-10). */
+  async function goHome() {
+    setBook(undefined);
+    setNotice(undefined);
+    const store = await appStore();
+    store.setLeftAtStart(true).catch(console.error);
+    const stored = await store.getCurrentBook();
+    setResumable(stored && { title: stored.title });
+  }
+
+  /** RD-32: reads the book back now, so it opens where the reader just left it. */
+  async function continueReading() {
+    const found = await currentBook();
+    if (!found) {
+      setResumable(undefined);
+      return;
+    }
+    setBook(found);
+    (await appStore()).setLeftAtStart(false).catch(console.error);
+  }
   const status = checking ? <p role="status">Opening…</p> : notice && <Notice kind={notice} />;
 
   // Settings are needed before the first page, so the book doesn't render and then jump.
@@ -152,20 +183,17 @@ export function App() {
 
   if (book && settings) {
     return (
-      <>
-        <ReaderScreen
-          book={book}
-          settings={settings}
-          theme={theme}
-          status={status}
-          onChooseFile={chooseFile}
-          onDropFile={(file) => void openFile(file)}
-          onSettingsChange={updateSettings}
-          onOpen={onOpen}
-          onError={onError}
-        />
-        {fileInput}
-      </>
+      <ReaderScreen
+        book={book}
+        settings={settings}
+        theme={theme}
+        status={status}
+        onHome={() => void goHome()}
+        onDropFile={(file) => void openFile(file)}
+        onSettingsChange={updateSettings}
+        onOpen={onOpen}
+        onError={onError}
+      />
     );
   }
 
@@ -181,6 +209,22 @@ export function App() {
       }}
       onDrop={onDrop}
     >
+      {/* RD-33: the same setting as Settings → Theme. */}
+      <div role="group" aria-label="Theme" className="theme-toggle">
+        {(['light', 'dark'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            className="pill-option"
+            aria-pressed={theme === option}
+            onClick={() => {
+              updateSettings({ theme: option });
+            }}
+          >
+            {option === 'light' ? 'Light' : 'Dark'}
+          </button>
+        ))}
+      </div>
       <main className="open-screen">
         <div className="open-intro">
           <h1>LitSnap</h1>
@@ -189,6 +233,21 @@ export function App() {
             Highlight a word in your book to see its meaning — without leaving the page.
           </p>
           <div className="short-rule" aria-hidden="true" />
+          {resumable && (
+            <div className="continue">
+              <button
+                type="button"
+                className="pill-button filled"
+                aria-describedby="continue-title"
+                onClick={() => void continueReading()}
+              >
+                Continue reading
+              </button>
+              <p id="continue-title" className="continue-title">
+                {resumable.title}
+              </p>
+            </div>
+          )}
           <div className="open-actions">
             <button type="button" className="pill-button" onClick={chooseFile}>
               Open a book
