@@ -182,18 +182,37 @@ export function App() {
       onDrop={onDrop}
     >
       <main className="open-screen">
-        <h1>LitSnap</h1>
-        <p>Highlight a word in your book to see its meaning — without leaving the page.</p>
-        <button type="button" onClick={chooseFile}>
-          Open a book
-        </button>
-        {fileInput}
-        <p className="hint">…or drop an EPUB anywhere on this page.</p>
-        {status}
+        <div className="open-intro">
+          <h1>LitSnap</h1>
+          <p className="open-subtitle label">Read · Highlight · Look up</p>
+          <p className="open-tagline">
+            Highlight a word in your book to see its meaning — without leaving the page.
+          </p>
+          <div className="short-rule" aria-hidden="true" />
+          <div className="open-actions">
+            <button type="button" className="pill-button" onClick={chooseFile}>
+              Open a book
+            </button>
+            {fileInput}
+            <p className="hint">or drop an EPUB anywhere on this page</p>
+          </div>
+          {status}
+        </div>
+        <section className="open-how" aria-labelledby="how-it-works">
+          <h2 id="how-it-works" className="label">
+            How it works
+          </h2>
+          <ul>
+            <li>Open an EPUB from your computer.</li>
+            <li>Select a word or a short phrase.</li>
+            <li>Choose Definition, Image or Both.</li>
+          </ul>
+        </section>
       </main>
       <footer>
+        <span>Your book never leaves this browser.</span>
         {/* New tab, so the reader is never interrupted (TERMS-4). */}
-        <a href="/terms" target="_blank" rel="noopener noreferrer">
+        <a className="label" href="/terms" target="_blank" rel="noopener noreferrer">
           Terms
         </a>
       </footer>
