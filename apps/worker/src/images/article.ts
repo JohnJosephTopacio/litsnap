@@ -3,7 +3,7 @@
 import { getJson, pageTitle } from '../definitions/http';
 import { isRecord } from '../definitions/text';
 import type { ProviderContext } from '../definitions/types';
-import type { Article } from './types';
+import { failedAt, type Article } from './types';
 
 export type ArticleOutcome =
   | { status: 'found'; article: Article }
@@ -17,11 +17,11 @@ export async function findArticle(term: string, context: ProviderContext): Promi
   if (title === undefined) return { status: 'not-found' };
   const reply = await getJson(API + title, context, [400, 404]);
   if (reply.status === 'missing') return { status: 'not-found' };
-  if (reply.status === 'failed') return reply;
+  if (reply.status === 'failed') return failedAt('summary', reply.reason);
 
   const { body } = reply;
   if (!isRecord(body) || typeof body.type !== 'string' || typeof body.title !== 'string')
-    return { status: 'failed', reason: 'unexpected response' };
+    return failedAt('summary', 'unexpected response');
   // Disambiguation and no-extract pages aren't the term's article (DEF-16).
   if (body.type !== 'standard') return { status: 'not-found' };
   const id = body.wikibase_item;

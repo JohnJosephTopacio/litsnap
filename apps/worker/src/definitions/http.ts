@@ -7,6 +7,17 @@ export const USER_AGENT = 'LitSnap/1.0 (https://github.com/JohnJosephTopacio/lit
 export type JsonReply =
   { status: 'ok'; body: unknown } | { status: 'missing' } | { status: 'failed'; reason: string };
 
+/** Which server answered an error, and when to come back: `" (server …, retry-after 15)"` (IMG-16). */
+function serverDetails(response: Response): string {
+  const server = response.headers.get('server');
+  const retryAfter = response.headers.get('retry-after');
+  const details = [
+    server && `server ${server.slice(0, 40)}`,
+    retryAfter && `retry-after ${retryAfter}`,
+  ].filter(Boolean);
+  return details.length > 0 ? ` (${details.join(', ')})` : '';
+}
+
 /** GETs JSON. `missingStatuses` mean "no such entry"; any other non-2xx or a bad body fails. */
 export async function getJson(
   url: string,
@@ -19,7 +30,11 @@ export async function getJson(
       signal: AbortSignal.timeout(context.timeoutMs),
     });
     if (missingStatuses.includes(response.status)) return { status: 'missing' };
-    if (!response.ok) return { status: 'failed', reason: `HTTP ${String(response.status)}` };
+    if (!response.ok)
+      return {
+        status: 'failed',
+        reason: `HTTP ${String(response.status)}${serverDetails(response)}`,
+      };
     return { status: 'ok', body: await response.json() };
   } catch (error) {
     return { status: 'failed', reason: error instanceof Error ? error.name : 'unknown error' };

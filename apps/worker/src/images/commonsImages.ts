@@ -4,7 +4,7 @@ import type { LookupImage } from '@litsnap/shared';
 import { getJson } from '../definitions/http';
 import { isRecord } from '../definitions/text';
 import { filePages, toLookupImage } from './files';
-import { MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
+import { failedAt, MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
 
 const WIKIDATA = 'https://www.wikidata.org/w/api.php';
 const COMMONS = 'https://commons.wikimedia.org/w/api.php';
@@ -12,7 +12,7 @@ const COMMONS = 'https://commons.wikimedia.org/w/api.php';
 const CANDIDATES = '10';
 
 const NOT_FOUND: ImageOutcome = { status: 'not-found' };
-const UNEXPECTED: ImageOutcome = { status: 'failed', reason: 'unexpected response' };
+const UNEXPECTED = failedAt('wikidata', 'unexpected response');
 
 export const commonsImages: ImageSource = {
   name: 'commons',
@@ -26,7 +26,7 @@ export const commonsImages: ImageSource = {
     });
     const reply = await getJson(`${WIKIDATA}?${query.toString()}`, context);
     if (reply.status === 'missing') return NOT_FOUND;
-    if (reply.status === 'failed') return reply;
+    if (reply.status === 'failed') return failedAt('wikidata', reply.reason);
     const { body } = reply;
     if (!isRecord(body) || !isRecord(body.claims)) return UNEXPECTED;
     const claims = body.claims.P373;
@@ -49,7 +49,7 @@ export const commonsImages: ImageSource = {
       context,
     );
     if (files.status === 'missing') return NOT_FOUND;
-    if (files.status === 'failed') return files;
+    if (files.status === 'failed') return failedAt('category', files.reason);
     const byTitle = (page: Record<string, unknown>) => String(page.title);
     const images = files.pages
       .filter(isRecord)

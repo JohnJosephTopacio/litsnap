@@ -5,6 +5,11 @@
   "compatibility_date": "2026-08-01",
   "observability": {
     "enabled": true,
+    // Cloudflare's own per-request logs hold each reader's IP, location and the looked-up term.
+    // Our one line per lookup (API-16) is enough (lookup-api.md, "Cloudflare's own request logs").
+    "logs": {
+      "invocation_logs": false,
+    },
   },
   // One RateLimiter per client IP (lookup-api.md, decision 0004). Free only allows SQLite-backed
   // Durable Objects, even though this one stores nothing.

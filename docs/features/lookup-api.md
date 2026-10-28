@@ -178,6 +178,9 @@ Then it has `Cache-Control: no-store`, not API-11's day. Otherwise the browser w
 Given a lookup with `kind=image` or `kind=both`
 Then the log entry (API-16) also has `images: { cache: 'hit' | 'miss', outcome: 'found' | 'not-found' | 'failed', reason?, ms }`. `outcome` is the section's status (from the cache, on a hit), `reason` is the image chain's (`commons: HTTP 503`) when it failed or its result is `incomplete`, and `ms` is how long the section took. Without images (`kind=definition`, invalid or rate-limited requests), the entry has no `images` key. API-16's rule holds: no term, selection or IP in any field.
 
+**Cloudflare's own request logs** _(#42)_
+The Worker's config turns off Cloudflare's invocation logs (`observability.logs.invocation_logs: false`). Those record, for every request, the reader's IP address, city, postcode, coordinates, browser and the full URL, term included (seen 2026-10-28). API-16's line is what's left. Cloudflare still attaches the request URL, and with it the term, to that line, and Workers Logs keep it for 3 days on the Free plan. That's an open question for the owner ([milestones.md](../milestones.md), M4 follow-ups): accept and disclose it, turn Workers Logs off, or take the term out of the URL.
+
 ## Notes for implementation
 
 - Test with `createApp(deps).fetch(request, env, ctx)` from `cloudflare:test`, so fake providers and a fake `log` can be passed in. Use `waitOnExecutionContext(ctx)` before reading the cache, because the cache is written with `ctx.waitUntil`. Use a different IP from `203.0.113.0/24` (a documentation range) in each rate-limit test, and a different term in each cache test.

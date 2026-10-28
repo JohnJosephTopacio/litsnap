@@ -105,7 +105,48 @@ const wait = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
-describe.each(STEPS)('%s', (_name, step) => {
+/** How each step's failures are labelled (IMG-16). */
+const LABELS: Record<string, string> = {
+  'the article': 'summary',
+  "the article's images": 'media-list',
+  'file details': 'details',
+  'the Commons category': 'wikidata',
+  "the category's files": 'category',
+};
+
+/** A 503 with Wikimedia's headers, as its API servers send it. */
+const overloaded: Reply = () =>
+  new Response('<html>Wikimedia Error</html>', {
+    status: 503,
+    headers: { server: 'mw-api-ext.codfw.main-787d8f68f6-dcf44-and-more', 'retry-after': '15' },
+  });
+
+describe.each(STEPS)('%s', (name, step) => {
+  describe('IMG-16: a failure says where it happened', () => {
+    const label = LABELS[name] ?? '';
+
+    it('names the request', async () => {
+      expect(await run(step, status(503)).outcome).toEqual({
+        status: 'failed',
+        reason: `${label}: HTTP 503`,
+      });
+    });
+
+    it("adds Wikimedia's server and Retry-After headers, the server cut to 40 characters", async () => {
+      expect(await run(step, overloaded).outcome).toEqual({
+        status: 'failed',
+        reason: `${label}: HTTP 503 (server mw-api-ext.codfw.main-787d8f68f6-dcf44-a, retry-after 15)`,
+      });
+    });
+
+    it('names the request for a network error too', async () => {
+      expect(await run(step, networkError).outcome).toEqual({
+        status: 'failed',
+        reason: `${label}: TypeError`,
+      });
+    });
+  });
+
   describe('IMG-1: never throws', () => {
     it('a network error is a failure', async () => {
       expect(await run(step, networkError).outcome).toMatchObject({ status: 'failed' });
