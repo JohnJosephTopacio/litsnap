@@ -60,9 +60,9 @@ Then the Definition section lists each entry's part of speech with its senses as
 Given the result has no definition
 Then the Definition section says _"No definition found."_
 
-**MODAL-9: images, until M4**
+**MODAL-9: no images**
 Given the result has no images
-Then the Images section says _"No good image found."_ (spec §4.4). The image grid, enlarging and attribution are M4.
+Then the Images section says _"No good image found."_ (spec §4.4). Found images are a grid: [image-grid.md](image-grid.md).
 
 **MODAL-10: errors and Retry**
 Given the lookup fails (network error, rate limit)

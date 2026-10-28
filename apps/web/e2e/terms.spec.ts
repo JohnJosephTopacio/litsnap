@@ -2,14 +2,14 @@
 import { expect, test } from '@playwright/test';
 import { CONTENT_SECURITY_POLICY } from '../config/csp';
 
-test('TERMS-1: the page renders its heading, date and sections 1–9', async ({ page }) => {
+test('TERMS-1: the page renders its heading, date and sections 1–10', async ({ page }) => {
   await page.goto('/terms');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Terms of Use' })).toBeVisible();
   await expect(page.getByText(/^Last updated: /)).toBeVisible();
   const sections = page.getByRole('heading', { level: 2 });
-  await expect(sections).toHaveCount(9);
-  for (let n = 1; n <= 9; n++) {
+  await expect(sections).toHaveCount(10);
+  for (let n = 1; n <= 10; n++) {
     await expect(sections.nth(n - 1)).toHaveText(new RegExp(`^${String(n)}\\. `));
   }
 });

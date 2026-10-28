@@ -13,6 +13,7 @@ import {
   linksEpub,
   positionedBodyEpub,
   remoteImageEpub,
+  WIKIMEDIA_HOST,
   scriptedEpub,
   type FixtureFile,
 } from './fixtures';
@@ -48,27 +49,33 @@ test('RD-21: scripts in books never run', async ({ page, context }) => {
   expect(popups).toEqual([]);
 });
 
-test('RD-22: books cannot load remote resources', async ({ page, context }) => {
-  // Chromium reports a CSP-blocked load as a request that then fails, so count what actually
-  // reaches the network instead: a route handler only runs for requests that would leave.
-  const reachedNetwork: string[] = [];
-  await context.route(`**://${REMOTE_HOST}/**`, (route) => {
-    reachedNetwork.push(route.request().url());
-    return route.fulfill({ status: 204 });
-  });
-  const blockedByCsp: string[] = [];
-  page.on('requestfailed', (request) => {
-    if (request.failure()?.errorText === 'csp') blockedByCsp.push(request.url());
-  });
+for (const [name, host] of [
+  ['a tracker', REMOTE_HOST],
+  // Our own code may fetch lookup images from Wikimedia (decision 0005); books still mustn't.
+  ['the host lookup images come from', WIKIMEDIA_HOST],
+] as const) {
+  test(`RD-22: books cannot load remote resources (${name})`, async ({ page, context }) => {
+    // Chromium reports a CSP-blocked load as a request that then fails, so count what actually
+    // reaches the network instead: a route handler only runs for requests that would leave.
+    const reachedNetwork: string[] = [];
+    await context.route(`**://${host}/**`, (route) => {
+      reachedNetwork.push(route.request().url());
+      return route.fulfill({ status: 204 });
+    });
+    const blockedByCsp: string[] = [];
+    page.on('requestfailed', (request) => {
+      if (request.failure()?.errorText === 'csp') blockedByCsp.push(request.url());
+    });
 
-  await openBook(page, remoteImageEpub());
-  await bookFrame(page, 'Pixel below.');
-  await settle(page);
+    await openBook(page, remoteImageEpub(host));
+    await bookFrame(page, 'Pixel below.');
+    await settle(page);
 
-  expect(reachedNetwork).toEqual([]);
-  // Positive control: the book did try, and the CSP is what stopped it.
-  expect(blockedByCsp).toEqual([`https://${REMOTE_HOST}/pixel.png`]);
-});
+    expect(reachedNetwork).toEqual([]);
+    // Positive control: the book did try, and the CSP is what stopped it.
+    expect(blockedByCsp).toEqual([`https://${host}/pixel.png`]);
+  });
+}
 
 test('RD-24: book metadata is shown as text, never as HTML', async ({ page }) => {
   await openBook(page, hostileTitleEpub());

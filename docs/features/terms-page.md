@@ -27,19 +27,23 @@ The reader goes live as soon as M1 merges, so a Terms of Use page has to go live
 >
 > **3. Your data stays on your device.** Your books, reading positions and settings are stored in your browser. If you clear your browser data, they are deleted, and we can't recover them. LitSnap isn't a backup, so keep your own copies of your books.
 >
-> **4. Provided "as is".** LitSnap is provided "as is" and "as available", without warranties of any kind. It may contain errors, and it may change or stop at any time.
+> **4. Lookups and third-party content.** When you look up a word, only that word is sent to LitSnap's server, which asks Wiktionary, the Free Dictionary API and Wikipedia for a definition, and Wikipedia and Wikimedia Commons for images. Your browser then downloads those images directly from Wikimedia, without cookies, so Wikimedia sees your IP address and which images were shown, under the [Wikimedia Foundation's privacy policy](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy).
 >
-> **5. Limitation of liability.** To the maximum extent permitted by law, the author of LitSnap is not liable for any damages arising from your use of LitSnap, including loss of data.
+> Definitions and images belong to their authors and are shown under the licences named next to them. LitSnap doesn't check them and can't promise they're accurate or suitable.
 >
-> **6. LitSnap's own code.** LitSnap's source code is public for reading, but all rights are reserved. Using LitSnap doesn't give you a licence to copy or reuse its code or design.
+> **5. Provided "as is".** LitSnap is provided "as is" and "as available", without warranties of any kind. It may contain errors, and it may change or stop at any time.
 >
-> **7. Open-source software.** LitSnap is built with open-source software. Their copyright notices and licences are listed in [Third-party licences](/third-party-licenses.txt).
+> **6. Limitation of liability.** To the maximum extent permitted by law, the author of LitSnap is not liable for any damages arising from your use of LitSnap, including loss of data.
 >
-> **8. Changes.** These terms may be updated. The date at the top shows the latest version. Continuing to use LitSnap means you accept the updated terms.
+> **7. LitSnap's own code.** LitSnap's source code is public for reading, but all rights are reserved. Using LitSnap doesn't give you a licence to copy or reuse its code or design.
 >
-> **9. Contact.** Questions? Open an issue on [GitHub](https://github.com/JohnJosephTopacio/litsnap/issues).
+> **8. Open-source software.** LitSnap is built with open-source software. Their copyright notices and licences are listed in [Third-party licences](/third-party-licenses.txt).
+>
+> **9. Changes.** These terms may be updated. The date at the top shows the latest version. Continuing to use LitSnap means you accept the updated terms.
+>
+> **10. Contact.** Questions? Open an issue on [GitHub](https://github.com/JohnJosephTopacio/litsnap/issues).
 
-When lookups ship (M3), a **"Lookups"** section is added: the looked-up term is sent to LitSnap's server, and results come from third-party sources (Wiktionary, Wikipedia, Wikimedia Commons) under their own licences, with no guarantee of accuracy.
+Section 4 was planned for M3 ("when lookups ship") but only landed with M4's images (image-grid.md, #38), together with what the browser sends Wikimedia ([decision 0005](../decisions/0005-images-fetched-not-embedded.md)).
 
 ## Acceptance criteria
 
@@ -48,7 +52,7 @@ Verified with Playwright against `vite preview`.
 **TERMS-1: page renders**
 Given the built app
 When `/terms` is opened
-Then the "Terms of Use" heading, the "Last updated" date and sections 1–9 are visible.
+Then the "Terms of Use" heading, the "Last updated" date and sections 1–10 are visible.
 
 **TERMS-2: same CSP**
 Given the built app

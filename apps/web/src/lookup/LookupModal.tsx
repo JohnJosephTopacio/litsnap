@@ -1,9 +1,16 @@
 // The lookup modal: term, source sentence, content, Google link. Spec: docs/features/lookup-modal.md.
-import type { Attribution, DefinitionSection, LookupKind, LookupResult } from '@litsnap/shared';
+import type {
+  Attribution,
+  DefinitionSection,
+  ImageSection,
+  LookupKind,
+  LookupResult,
+} from '@litsnap/shared';
 import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import type { LookupSize } from '../storage/bookStore';
 import type { LookupClient } from './client';
 import { googleSearchUrl } from './google';
+import { ImageGrid } from './ImageGrid';
 import type { SourceSentence } from './sourceSentence';
 
 export interface LookupRequest {
@@ -148,10 +155,10 @@ function Definition({ definition }: { definition: DefinitionSection | undefined 
   );
 }
 
-function Images() {
-  // Temporary: the Worker finds images, but the grid is the next M4 PR. Until then, found images
-  // read as before rather than leaving the section blank.
-  return <p>No good image found.</p>;
+/** An empty list reads as "No good image found." too: the grid says so when none are left. */
+function Images({ images }: { images: ImageSection | undefined }) {
+  if (images?.status !== 'found') return <p>No good image found.</p>;
+  return <ImageGrid images={images.images} />;
 }
 
 function Section(props: {
@@ -289,7 +296,7 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
             retryOwn={imagesAgain.retry}
             part={(result) => result.images}
           >
-            {() => <Images />}
+            {(result) => <Images images={result.images} />}
           </Section>
         )}
 

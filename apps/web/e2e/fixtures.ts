@@ -50,14 +50,16 @@ export const scriptedEpub = () =>
 
 /** RD-22: a book that would load an image from a remote host. */
 export const REMOTE_HOST = 'tracker.example';
-export const remoteImageEpub = () =>
+/** Our own code may fetch from here (decision 0005), but books still mustn't load from it. */
+export const WIKIMEDIA_HOST = 'upload.wikimedia.org';
+export const remoteImageEpub = (host = REMOTE_HOST) =>
   epub(
     'remote-image.epub',
     buildEpubBytes({
       files: {
         'OEBPS/chapter1.xhtml': chapter(
           '',
-          `<p>Pixel below.</p><img src="https://${REMOTE_HOST}/pixel.png" alt=""/>`,
+          `<p>Pixel below.</p><img src="https://${host}/pixel.png" alt=""/>`,
         ),
       },
     }),

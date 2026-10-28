@@ -224,9 +224,9 @@ describe('LookupModal', () => {
       expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
     });
 
-    // Temporary: the Worker finds images from #37 on, and the grid is the next PR. Until then the
-    // section keeps saying what it said before, rather than going blank. The grid PR replaces this.
-    it('found images still read "No good image found." until the grid', async () => {
+    it('found images are a grid (image-grid.md)', async () => {
+      // The grid downloads with the real loader: never let it reach the network.
+      const fetch = vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => undefined));
       const { client, calls } = controlledClient();
       renderModal({ kind: 'image', client });
       await settle(() => {
@@ -244,6 +244,7 @@ describe('LookupModal', () => {
                 width: 1000,
                 height: 800,
                 attribution: {
+                  author: 'Sample Author',
                   sourceName: 'Wikimedia Commons',
                   sourceUrl: 'https://commons.wikimedia.org/',
                 },
@@ -253,7 +254,13 @@ describe('LookupModal', () => {
         });
       });
 
-      expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
+      expect(within(section('Images')).getAllByRole('listitem')).toHaveLength(1);
+      expect(within(section('Images')).queryByText('No good image found.')).toBeNull();
+      expect(fetch).toHaveBeenCalledWith(
+        'https://upload.wikimedia.org/wikipedia/commons/a/ab/Barn.jpg',
+        expect.objectContaining({ referrerPolicy: 'no-referrer' }),
+      );
+      fetch.mockRestore();
     });
   });
 
