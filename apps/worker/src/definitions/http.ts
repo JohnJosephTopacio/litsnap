@@ -18,17 +18,25 @@ function serverDetails(response: Response): string {
   return details.length > 0 ? ` (${details.join(', ')})` : '';
 }
 
+/** More for one request: headers to add, and a look at the response (image Action API, IMG-17/18). */
+export interface RequestExtras {
+  headers?: Record<string, string>;
+  onResponse?: (response: Response) => void;
+}
+
 /** GETs JSON. `missingStatuses` mean "no such entry"; any other non-2xx or a bad body fails. */
 export async function getJson(
   url: string,
   context: ProviderContext,
   missingStatuses: readonly number[] = [404],
+  extras: RequestExtras = {},
 ): Promise<JsonReply> {
   try {
     const response = await context.fetch(url, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json', ...extras.headers },
       signal: AbortSignal.timeout(context.timeoutMs),
     });
+    extras.onResponse?.(response);
     if (missingStatuses.includes(response.status)) return { status: 'missing' };
     if (!response.ok)
       return {

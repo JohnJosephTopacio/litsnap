@@ -21,6 +21,7 @@ import {
 } from './definitions/types';
 import { lookupImages } from './images/chain';
 import { DETAILS_TIMEOUT_MS, type ImageOutcome } from './images/types';
+import { CookieJar } from './images/wikimedia';
 import { checkRateLimit, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
@@ -32,6 +33,9 @@ export const ALLOWED_ORIGINS = [
 
 /** Longest normalised term the Worker looks up (API-3). */
 export const MAX_TERM_LENGTH = 100;
+
+/** Wikimedia's cookies for this Worker instance, shared by every lookup (IMG-18). */
+const WIKIMEDIA_COOKIES = new CookieJar();
 
 /** What one `/lookup` request logs: never the term or the IP (API-16). */
 export interface LookupLog {
@@ -161,6 +165,9 @@ export function createApp(deps: Partial<AppDeps> = {}) {
       fetch: (input, init) => fetch(input, init),
       timeoutMs: DEFAULT_TIMEOUT_MS,
       detailsTimeoutMs: DETAILS_TIMEOUT_MS,
+      // LitSnap's Wikimedia identity, for the image Action API requests (decision 0006).
+      cookies: WIKIMEDIA_COOKIES,
+      ...(c.env.WIKIMEDIA_TOKEN ? { wikimediaToken: c.env.WIKIMEDIA_TOKEN } : {}),
     };
     // At the same time: one after the other could outlast the client's timeout (API-19).
     const [definition, imageSection] = await Promise.all([
