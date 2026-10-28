@@ -1,10 +1,10 @@
 // From an imageinfo entry to an image we may show: licence, credit, URLs, alt text (IMG-6…11).
 // Spec: docs/features/image-providers.md.
 import type { LookupImage } from '@litsnap/shared';
-import { getJson } from '../definitions/http';
 import { htmlToText, isRecord } from '../definitions/text';
 import type { ProviderContext } from '../definitions/types';
 import { FULL_WIDTH, THUMB_WIDTH } from './types';
+import { actionApiJson } from './wikimedia';
 
 /** The imageinfo parameters both details requests end with, in this order. */
 export const FILE_DETAILS: Readonly<Record<string, string>> = {
@@ -33,7 +33,7 @@ export async function filePages(
     ...FILE_DETAILS,
   });
   // Licence metadata is slow the first time Wikimedia makes it, so these get longer (IMG-3).
-  const reply = await getJson(`${api}?${query.toString()}`, {
+  const reply = await actionApiJson(`${api}?${query.toString()}`, {
     ...context,
     timeoutMs: context.detailsTimeoutMs ?? context.timeoutMs,
   });

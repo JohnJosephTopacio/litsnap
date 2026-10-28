@@ -1,10 +1,10 @@
 // Files in the article's Commons category, found through Wikidata (IMG-13).
 // Spec: docs/features/image-providers.md.
 import type { LookupImage } from '@litsnap/shared';
-import { getJson } from '../definitions/http';
 import { isRecord } from '../definitions/text';
 import { filePages, toLookupImage } from './files';
 import { failedAt, MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
+import { actionApiJson } from './wikimedia';
 
 const WIKIDATA = 'https://www.wikidata.org/w/api.php';
 const COMMONS = 'https://commons.wikimedia.org/w/api.php';
@@ -24,7 +24,7 @@ export const commonsImages: ImageSource = {
       entity: article.wikidataId,
       property: 'P373',
     });
-    const reply = await getJson(`${WIKIDATA}?${query.toString()}`, context);
+    const reply = await actionApiJson(`${WIKIDATA}?${query.toString()}`, context);
     if (reply.status === 'missing') return NOT_FOUND;
     if (reply.status === 'failed') return failedAt('wikidata', reply.reason);
     const { body } = reply;
