@@ -223,6 +223,38 @@ describe('LookupModal', () => {
       ).toBeInTheDocument();
       expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
     });
+
+    // Temporary: the Worker finds images from #37 on, and the grid is the next PR. Until then the
+    // section keeps saying what it said before, rather than going blank. The grid PR replaces this.
+    it('found images still read "No good image found." until the grid', async () => {
+      const { client, calls } = controlledClient();
+      renderModal({ kind: 'image', client });
+      await settle(() => {
+        calls[0]?.resolve({
+          term: 'hipped roof',
+          images: {
+            status: 'found',
+            images: [
+              {
+                thumbUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Barn.jpg',
+                fullUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Barn.jpg',
+                alt: 'A barn',
+                title: 'Barn',
+                mime: 'image/jpeg',
+                width: 1000,
+                height: 800,
+                attribution: {
+                  sourceName: 'Wikimedia Commons',
+                  sourceUrl: 'https://commons.wikimedia.org/',
+                },
+              },
+            ],
+          },
+        });
+      });
+
+      expect(within(section('Images')).getByText('No good image found.')).toBeInTheDocument();
+    });
   });
 
   describe('MODAL-10: errors and Retry', () => {

@@ -1,11 +1,5 @@
 // The lookup modal: term, source sentence, content, Google link. Spec: docs/features/lookup-modal.md.
-import type {
-  Attribution,
-  DefinitionSection,
-  ImageSection,
-  LookupKind,
-  LookupResult,
-} from '@litsnap/shared';
+import type { Attribution, DefinitionSection, LookupKind, LookupResult } from '@litsnap/shared';
 import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import type { LookupSize } from '../storage/bookStore';
 import type { LookupClient } from './client';
@@ -154,12 +148,10 @@ function Definition({ definition }: { definition: DefinitionSection | undefined 
   );
 }
 
-function Images({ images }: { images: ImageSection | undefined }) {
-  // The grid, enlarging and attribution arrive in M4.
-  if (images?.status !== 'found' || images.images.length === 0) {
-    return <p>No good image found.</p>;
-  }
-  return null;
+function Images() {
+  // Temporary: the Worker finds images, but the grid is the next M4 PR. Until then, found images
+  // read as before rather than leaving the section blank.
+  return <p>No good image found.</p>;
 }
 
 function Section(props: {
@@ -297,7 +289,7 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
             retryOwn={imagesAgain.retry}
             part={(result) => result.images}
           >
-            {(result) => <Images images={result.images} />}
+            {() => <Images />}
           </Section>
         )}
 
