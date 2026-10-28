@@ -8,7 +8,8 @@ import { MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
 
 const WIKIDATA = 'https://www.wikidata.org/w/api.php';
 const COMMONS = 'https://commons.wikimedia.org/w/api.php';
-const CANDIDATES = '20';
+/** As for the article's images: each file slows Wikimedia's first answer (IMG-13). */
+const CANDIDATES = '10';
 
 const NOT_FOUND: ImageOutcome = { status: 'not-found' };
 const UNEXPECTED: ImageOutcome = { status: 'failed', reason: 'unexpected response' };

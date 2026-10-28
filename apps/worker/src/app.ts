@@ -20,7 +20,7 @@ import {
   type ProviderContext,
 } from './definitions/types';
 import { lookupImages } from './images/chain';
-import type { ImageOutcome } from './images/types';
+import { DETAILS_TIMEOUT_MS, type ImageOutcome } from './images/types';
 import { checkRateLimit, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
@@ -160,6 +160,7 @@ export function createApp(deps: Partial<AppDeps> = {}) {
       // "Illegal invocation" in Workers.
       fetch: (input, init) => fetch(input, init),
       timeoutMs: DEFAULT_TIMEOUT_MS,
+      detailsTimeoutMs: DETAILS_TIMEOUT_MS,
     };
     // At the same time: one after the other could outlast the client's timeout (API-19).
     const [definition, imageSection] = await Promise.all([
@@ -216,12 +217,16 @@ export function createApp(deps: Partial<AppDeps> = {}) {
       cache: 'miss',
       outcome: outcome.status,
       ...(outcome.status === 'failed' && { reason: outcome.reason }),
+      ...(outcome.status === 'found' &&
+        outcome.incomplete && { reason: outcome.incomplete.reason }),
       ms: Date.now() - started,
     };
     if (outcome.status === 'failed') return { status: 'failed' };
+    // The reader gets the images, never the `incomplete` flag (API-20).
     const section: ImageSection =
       outcome.status === 'found' ? { status: 'found', images: outcome.images } : outcome;
-    c.executionCtx.waitUntil(storeImages(term, section));
+    const incomplete = outcome.status === 'found' && outcome.incomplete !== undefined;
+    c.executionCtx.waitUntil(storeImages(term, section, incomplete));
     return section;
   }
 

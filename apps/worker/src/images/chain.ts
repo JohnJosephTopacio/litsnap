@@ -27,11 +27,14 @@ export async function lookupImages(
 
   const images: LookupImage[] = [];
   const seen = new Set<string>();
+  /** The first failure before the grid was full: it might have hidden images (IMG-15). */
+  let failure: string | undefined;
   for (const { source, outcome } of answers) {
     if (images.length >= MAX_IMAGES) break;
-    // A failure might have hidden images, unless the grid was already full (IMG-15).
-    if (outcome.status === 'failed')
-      return { status: 'failed', reason: `${source.name}: ${outcome.reason}` };
+    if (outcome.status === 'failed') {
+      failure ??= `${source.name}: ${outcome.reason}`;
+      continue;
+    }
     if (outcome.status === 'not-found') continue;
     for (const image of outcome.images) {
       if (images.length >= MAX_IMAGES) break;
@@ -40,5 +43,10 @@ export async function lookupImages(
       images.push(image);
     }
   }
-  return images.length > 0 ? { status: 'found', images } : { status: 'not-found' };
+  if (images.length === 0)
+    return failure === undefined ? { status: 'not-found' } : { status: 'failed', reason: failure };
+  // What was found is shown, even if a source failed (IMG-15, changed in #41).
+  return failure === undefined
+    ? { status: 'found', images }
+    : { status: 'found', images, incomplete: { reason: failure } };
 }

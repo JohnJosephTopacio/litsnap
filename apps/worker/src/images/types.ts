@@ -7,6 +7,8 @@ export const MAX_IMAGES = 6;
 /** Thumbnail and enlarged widths. Both are Wikimedia standard steps, the only widths it serves. */
 export const THUMB_WIDTH = 330;
 export const FULL_WIDTH = 1280;
+/** File details in production (IMG-3): their first request took up to 10 s (measured, #41). */
+export const DETAILS_TIMEOUT_MS = 10_000;
 
 /** The Wikipedia article whose title is exactly the term (IMG-5). */
 export interface Article {
@@ -18,7 +20,8 @@ export interface Article {
 
 /** `reason` is for logs, never shown to readers. */
 export type ImageOutcome =
-  | { status: 'found'; images: LookupImage[] }
+  // `incomplete`: a source failed before the grid was full, so there may be more (IMG-15).
+  | { status: 'found'; images: LookupImage[]; incomplete?: { reason: string } }
   | { status: 'not-found' }
   | { status: 'failed'; reason: string };
 

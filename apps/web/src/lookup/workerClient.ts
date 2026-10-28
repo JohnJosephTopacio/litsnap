@@ -4,7 +4,7 @@ import { LOOKUP_ORIGIN } from '../../config/lookup';
 import type { LookupClient } from './client';
 
 /** The Worker's worst case is about 12 s, so this only catches a hung connection (CLIENT-4). */
-export const LOOKUP_TIMEOUT_MS = 15_000;
+export const LOOKUP_TIMEOUT_MS = 20_000;
 
 /** Where `wrangler dev` listens. */
 const DEV_LOOKUP_URL = 'http://localhost:8787';

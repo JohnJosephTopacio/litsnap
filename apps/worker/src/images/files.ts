@@ -32,7 +32,11 @@ export async function filePages(
     ...params,
     ...FILE_DETAILS,
   });
-  const reply = await getJson(`${api}?${query.toString()}`, context);
+  // Licence metadata is slow the first time Wikimedia makes it, so these get longer (IMG-3).
+  const reply = await getJson(`${api}?${query.toString()}`, {
+    ...context,
+    timeoutMs: context.detailsTimeoutMs ?? context.timeoutMs,
+  });
   if (reply.status !== 'ok') return reply;
   const { body } = reply;
   // The Action API reports errors with a 200 (IMG-4).
