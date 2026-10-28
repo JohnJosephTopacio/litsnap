@@ -22,7 +22,7 @@ import {
 import { lookupImages } from './images/chain';
 import { DETAILS_TIMEOUT_MS, type ImageOutcome } from './images/types';
 import { CookieJar } from './images/wikimedia';
-import { checkImageBudget, checkRateLimit, type RateVerdict } from './rateLimit';
+import { checkImageBudget, checkRateLimit, clientKey, type RateVerdict } from './rateLimit';
 
 /** Pages allowed to read `/lookup` responses (API-15). */
 export const ALLOWED_ORIGINS = [
@@ -65,7 +65,7 @@ export interface AppDeps {
   /** The image chain (API-17). */
   images: (term: string, context: ProviderContext) => Promise<ImageOutcome>;
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>;
-  /** The budget for uncached image lookups, shared by everyone (API-24). RED PHASE: not used yet. */
+  /** The budget for uncached image lookups, shared by everyone (API-24). */
   imageBudget: (env: Env) => Promise<RateVerdict>;
   log: (entry: LookupLog) => void;
 }
@@ -103,7 +103,7 @@ const observed = (providers: readonly DefinitionProvider[], entry: LookupLog) =>
   }));
 
 export function createApp(deps: Partial<AppDeps> = {}) {
-  const { providers, images, rateLimit, log } = { ...DEFAULT_DEPS, ...deps };
+  const { providers, images, rateLimit, imageBudget, log } = { ...DEFAULT_DEPS, ...deps };
   const app = new Hono<{ Bindings: Env }>();
 
   app.use(
@@ -141,7 +141,9 @@ export function createApp(deps: Partial<AppDeps> = {}) {
 
     // Every request counts, so this comes first (API-12); if the check fails, go ahead (API-14).
     try {
-      const verdict = await rateLimit(c.env, c.req.header('CF-Connecting-IP') ?? 'unknown');
+      // An IPv6 client counts by its /64 (API-23).
+      const ip = clientKey(c.req.header('CF-Connecting-IP') ?? 'unknown');
+      const verdict = await rateLimit(c.env, ip);
       if (!verdict.allowed) {
         entry.rateLimit = 'denied';
         c.header('Retry-After', String(verdict.retryAfterSeconds));
@@ -221,6 +223,17 @@ export function createApp(deps: Partial<AppDeps> = {}) {
     if (cached) {
       entry.images = { cache: 'hit', outcome: cached.status, ms: Date.now() - started };
       return cached;
+    }
+    // LitSnap's Wikimedia budget, shared by everyone. It fails closed: failing open would send
+    // unlimited requests in LitSnap's name (API-24).
+    const spent = (reason: 'budget' | 'budget-error'): ImageSection => {
+      entry.images = { cache: 'miss', outcome: 'failed', reason, ms: Date.now() - started };
+      return { status: 'failed' };
+    };
+    try {
+      if (!(await imageBudget(c.env)).allowed) return spent('budget');
+    } catch {
+      return spent('budget-error');
     }
     const outcome = await images(term, context);
     entry.images = {
