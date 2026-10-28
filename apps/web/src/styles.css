@@ -367,6 +367,64 @@ foliate-view {
   object-fit: cover;
 }
 
+/* Thumbnails are buttons that enlarge them (image-viewer.md, VIEW-1). */
+.image-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.image-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* The enlarged view, in place of the grid (VIEW-2). */
+.viewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewer-position {
+  margin-right: auto;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.image-viewer figure {
+  margin: 0.5rem 0 0;
+}
+
+/* Its width (inline) keeps it within 55vh at the image's aspect ratio. */
+.viewer-frame {
+  margin: 0 auto;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  overflow: hidden;
+}
+
+.viewer-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-viewer figcaption p {
+  margin: 0.25rem 0 0;
+}
+
+.viewer-credit {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
 /* One line, cut with an ellipsis; the whole credit is in the tooltip (GRID-5). */
 .image-credit {
   margin: 0.25rem 0 0;

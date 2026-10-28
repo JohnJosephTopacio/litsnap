@@ -6,7 +6,7 @@
 
 When a lookup finds images ([image-providers.md](image-providers.md), [lookup-api.md](lookup-api.md) API-17), the modal's Images section shows them as a grid of up to 6 thumbnails, each credited, without letting books load anything new.
 
-Clicking a thumbnail to enlarge it is the next PR (`image-viewer.md`). Until then the thumbnails aren't buttons.
+Clicking a thumbnail enlarges it: [image-viewer.md](image-viewer.md).
 
 Decided in the M4 grilling (2026-10-27, Q1, Q6, Q9, Q12, Q16) and the legal check:
 
@@ -33,7 +33,7 @@ function loadImage(url: string, signal: AbortSignal, fetchImpl?: typeof fetch): 
 
 **GRID-1: a grid of thumbnails**
 Given the result's images are found
-Then the Images section shows one thumbnail per image, in the Worker's order, as `<img>` elements with the image's `alt` text (spec §4.4). The grid has 2 columns at size S and 3 at M and L (MODAL-12). The thumbnails aren't buttons yet (`image-viewer.md`).
+Then the Images section shows one thumbnail per image, in the Worker's order, as `<img>` elements with the image's `alt` text (spec §4.4). The grid has 2 columns at size S and 3 at M and L (MODAL-12). Each thumbnail is a button that enlarges it ([image-viewer.md](image-viewer.md), VIEW-1).
 
 **GRID-2: our code downloads the images**
 Given a thumbnail is shown
@@ -54,7 +54,7 @@ Then that thumbnail and its credit are removed from the grid, with no empty box.
 
 **GRID-5: every thumbnail is credited**
 Given a thumbnail is shown
-Then under it is one line, `{author} · {licence}`. The author links to the file's page (`sourceUrl`), and the licence links to `licenceUrl` when there is one. Links open in a new tab (`target="_blank"`, `rel="noopener noreferrer"`) and only `http(s)` URLs become links. A long line is cut with an ellipsis, and the line's `title` holds the whole credit, including the image's title (CC 3.0 and earlier ask for it), so nothing is lost until the enlarged view shows it in full. All of it is rendered as text.
+Then under it is one line, `{author} · {licence}`. The author links to the file's page (`sourceUrl`), and the licence links to `licenceUrl` when there is one. Links open in a new tab (`target="_blank"`, `rel="noopener noreferrer"`) and only `http(s)` URLs become links. A long line is cut with an ellipsis, and the line's `title` holds the whole credit, including the image's title (CC 3.0 and earlier ask for it), and the enlarged view shows it in full (VIEW-2). All of it is rendered as text.
 
 **GRID-6: no animation for readers who asked for less motion**
 Given the reader's system has `prefers-reduced-motion: reduce`
@@ -80,5 +80,5 @@ Then `connect-src` also allows `https://upload.wikimedia.org`, and `img-src` is 
 
 ## Out of scope
 
-- Enlarging, keyboard navigation between images, and the full credit view: `image-viewer.md` (next PR).
+- Enlarging, keyboard navigation between images, and the full credit view: [image-viewer.md](image-viewer.md).
 - Lazy loading below the fold: 6 small thumbnails load at once.

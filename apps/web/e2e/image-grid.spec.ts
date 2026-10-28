@@ -1,52 +1,11 @@
 // GRID-1…3, 5 and 9 from docs/features/image-grid.md, against `vite preview` (the production build
-// and CSP). The Worker is faked by `fakeWorker`, and Wikimedia by `fakeWikimedia` below: a request
-// the CSP blocks never reaches a route, so an image that arrives also proves the CSP allows it.
+// and CSP). The Worker is faked by `fakeWorker`, and Wikimedia by `fakeWikimedia` (e2e/images.ts).
 import { expect, test, type Page } from '@playwright/test';
-import type { LookupImage } from '@litsnap/shared';
 import { dragSelect, lookupMenu, lookupModal, openLookupBook } from './selection';
+import { fakeWikimedia, sampleImage } from './images';
 import { fakeWorker } from './worker';
 
-/** A 1 × 1 PNG. */
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  'base64',
-);
-
-const image = (name: string, width = 1000, height = 800): LookupImage => ({
-  thumbUrl: `https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/${name}.jpg/330px-${name}.jpg`,
-  fullUrl: `https://upload.wikimedia.org/wikipedia/commons/a/ab/${name}.jpg`,
-  alt: `A photo of the ${name.toLowerCase()}`,
-  title: name,
-  mime: 'image/jpeg',
-  width,
-  height,
-  attribution: {
-    author: 'Sample Author',
-    licence: 'CC BY-SA 4.0',
-    licenceUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
-    sourceName: 'Wikimedia Commons',
-    sourceUrl: `https://commons.wikimedia.org/wiki/File:${name}.jpg`,
-  },
-});
-
-const IMAGES = [image('Barn'), image('Mill'), image('Tower', 300, 900)];
-
-/** Answers image downloads with a PNG, except URLs containing `hold`, which never answer. */
-async function fakeWikimedia(page: Page, hold?: string) {
-  const asked: { url: string; headers: Record<string, string> }[] = [];
-  await page.route('https://upload.wikimedia.org/**', async (route) => {
-    const request = route.request();
-    asked.push({ url: request.url(), headers: await request.allHeaders() });
-    if (hold && request.url().includes(hold)) return;
-    await route.fulfill({
-      status: 200,
-      body: PNG,
-      contentType: 'image/png',
-      headers: { 'Access-Control-Allow-Origin': '*' },
-    });
-  });
-  return asked;
-}
+const IMAGES = [sampleImage('Barn'), sampleImage('Mill'), sampleImage('Tower', 300, 900)];
 
 /** Collects CSP violations and page errors. */
 function watchViolations(page: Page) {
@@ -106,7 +65,7 @@ test('GRID-1: 3 columns at M and L, 2 at S', async ({ page }) => {
     ['Large', 3],
     ['Small', 2],
   ] as const) {
-    await lookupModal(page).getByRole('button', { name: size }).click();
+    await lookupModal(page).getByRole('button', { name: size, exact: true }).click();
     await expect.poll(columns).toBe(expected);
   }
 });
