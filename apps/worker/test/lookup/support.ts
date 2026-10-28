@@ -70,11 +70,15 @@ export function fakeImages(outcome: ImageOutcome | (() => Promise<ImageOutcome>)
 /** Lets every request through, for tests that aren't about the rate limit. */
 export const allowAll: AppDeps['rateLimit'] = () => Promise.resolve({ allowed: true });
 
+/** Never runs out, for tests that aren't about the image budget (API-24). */
+export const unlimitedBudget: AppDeps['imageBudget'] = () => Promise.resolve({ allowed: true });
+
 /** The app with `deps`, recording its logs. Requests wait for `waitUntil` work such as cache writes. */
 export function setUp(deps: Partial<AppDeps> = {}) {
   const logs: LookupLog[] = [];
   const app = createApp({
     rateLimit: allowAll,
+    imageBudget: unlimitedBudget,
     // Never the real chain: tests don't use the network.
     images: fakeImages(IMAGES_NOT_FOUND).images,
     log: (entry) => {

@@ -32,12 +32,12 @@ GET /lookup?term=<selection>&kind=definition|image|both
 
 `LookupErrorBody` (in `packages/shared`) is the error body type.
 
-| Module                         | Exports                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `apps/worker/src/app.ts`       | `createApp(deps?)`, `AppDeps`, `LookupLog`, `ALLOWED_ORIGINS`, `MAX_TERM_LENGTH` (100)           |
-| `apps/worker/src/cache.ts`     | `definitionCacheKey(term)`, `imagesCacheKey(term)`, `FOUND_TTL_SECONDS`, `NOT_FOUND_TTL_SECONDS` |
-| `apps/worker/src/rateLimit.ts` | `RateLimiter` (Durable Object), `RATE_LIMIT`, `RateVerdict`, `checkRateLimit(env, ip)`           |
-| `apps/worker/src/index.ts`     | `default` (the app), `RateLimiter` (Workers needs the class exported from the main module)       |
+| Module                         | Exports                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/worker/src/app.ts`       | `createApp(deps?)`, `AppDeps`, `LookupLog`, `ALLOWED_ORIGINS`, `MAX_TERM_LENGTH` (100)                                                           |
+| `apps/worker/src/cache.ts`     | `definitionCacheKey(term)`, `imagesCacheKey(term)`, `FOUND_TTL_SECONDS`, `NOT_FOUND_TTL_SECONDS`                                                 |
+| `apps/worker/src/rateLimit.ts` | `RateLimiter` (Durable Object), `RATE_LIMIT`, `IMAGE_BUDGET`, `RateVerdict`, `checkRateLimit(env, ip)`, `checkImageBudget(env)`, `clientKey(ip)` |
+| `apps/worker/src/index.ts`     | `default` (the app), `RateLimiter` (Workers needs the class exported from the main module)                                                       |
 
 `createApp` takes its dependencies so tests can replace them. Production uses the defaults:
 
@@ -46,6 +46,7 @@ interface AppDeps {
   providers: readonly DefinitionProvider[]; // DEFINITION_PROVIDERS
   images: (term: string, context: ProviderContext) => Promise<ImageOutcome>; // lookupImages
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>; // checkRateLimit (the Durable Object)
+  imageBudget: (env: Env) => Promise<RateVerdict>; // checkImageBudget (one Durable Object for everyone)
   log: (entry: LookupLog) => void; // console.log(JSON.stringify(entry)), read in Workers Logs
 }
 
@@ -121,12 +122,20 @@ Then it's `429 { error: 'rate-limited' }` with `Retry-After` set to the whole se
 
 **API-13: the window**
 Given the `RateLimiter` for one IP
-When `hit(now)` is called
+When `hit(now, limit?)` is called (`limit` is `RATE_LIMIT` unless given: API-24 passes `IMAGE_BUDGET`)
 Then the first call starts a 60-second window, and calls 1–30 in the window return `{ allowed: true }`. Later calls in that window return `{ allowed: false, retryAfterSeconds }`, where `retryAfterSeconds` is the rest of the window rounded up (at least 1), and they don't count. The first call at or after the window's end starts a new one.
 
 **API-14: fail open**
 Given the rate limit check throws (the Durable Object is unavailable or over its daily cap)
 Then the lookup is served as if allowed, and the log says `rateLimit: 'error'`.
+
+**API-23: an IPv6 connection counts as one client** _(#44)_
+Given requests from IPv6 addresses in the same `/64` (the first four groups, e.g. `2001:db8:1:2::1` and `2001:db8:1:2:ffff::9`)
+Then they share one rate limit (API-12): `rateLimit` is asked for `clientKey(ip)`, `2001:db8:1:2::/64`. A connection is usually given a whole `/64`, so counting each address would let one client rotate addresses past the limit. `clientKey` understands `::` shortening, leading zeros and upper case, and treats an IPv4 address written as IPv6 (`::ffff:203.0.113.7`) as that IPv4 address. IPv4 addresses and `unknown` are their own key. Anything that isn't an IP address counts as `unknown`.
+
+**API-24: a budget for Wikimedia, shared by everyone** _(#44, decision 0006)_
+Given an image lookup that isn't in the cache
+Then the Worker first asks `imageBudget`: at most `IMAGE_BUDGET`, **50 a minute for all readers together** (one `RateLimiter`, `idFromName('wikimedia')`, with that limit). Each uses at most three Action API requests, so at most 150 of the ~200 a minute Wikimedia gives LitSnap's account. When the budget is spent, the image chain isn't asked: the section is `failed` (API-18, so the reader gets Retry), nothing is cached, and the log has `images: { cache: 'miss', outcome: 'failed', reason: 'budget', ms }`. Cache hits, definitions and `kind=definition` don't use the budget. **Unlike API-14, the budget fails closed:** if it can't be checked (a flood used up the Durable Objects' daily quota, say), the images section is `failed` with reason `budget-error`, and Wikimedia isn't asked. Failing open there would send unlimited requests in LitSnap's name, which is the one way a flood could get its Wikimedia account flagged. One reader, or a few, can't use up LitSnap's Wikimedia account for everyone else, or get it flagged for misbehaving.
 
 ### CORS
 
