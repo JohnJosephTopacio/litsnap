@@ -70,6 +70,9 @@ export interface BookStore {
   setCurrentBook(id: string): Promise<void>;
   /** `undefined` when no book is current, or the current book is no longer stored. */
   getCurrentBook(): Promise<StoredBook | undefined>;
+  /** STO-16: whether the reader last left from the start screen (RD-31). Unset = `false`. */
+  getLeftAtStart(): Promise<boolean>;
+  setLeftAtStart(leftAtStart: boolean): Promise<void>;
   saveProgress(bookId: string, position: Position): Promise<void>;
   getProgress(bookId: string): Promise<StoredProgress | undefined>;
   getSettings(): Promise<Settings>;
@@ -88,7 +91,7 @@ export class StorageFullError extends Error {
 interface LitsnapDB extends DBSchema {
   books: { key: string; value: StoredBook };
   progress: { key: string; value: StoredProgress };
-  // Key/value pairs: `fontSize`, `theme`, `layout`, `lookupSize`, `currentBookId`.
+  // Key/value pairs: `fontSize`, `theme`, `layout`, `lookupSize`, `currentBookId`, `leftAtStart`.
   settings: { key: string; value: unknown };
 }
 
@@ -201,6 +204,14 @@ export async function openBookStore(options: BookStoreOptions = {}): Promise<Boo
     async getCurrentBook() {
       const id = await db.get('settings', 'currentBookId');
       return typeof id === 'string' ? db.get('books', id) : undefined;
+    },
+
+    async getLeftAtStart() {
+      return (await db.get('settings', 'leftAtStart')) === true;
+    },
+
+    async setLeftAtStart(leftAtStart) {
+      await db.put('settings', leftAtStart, 'leftAtStart');
     },
 
     async saveProgress(bookId, { cfi, fraction }) {

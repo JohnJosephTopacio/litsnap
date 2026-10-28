@@ -11,6 +11,7 @@ import {
   openLookupBook,
   selectedText,
 } from './selection';
+import { bookFrame } from './book';
 import { storedSetting } from './storage';
 import { fakeWorker } from './worker';
 
@@ -116,7 +117,8 @@ test.describe('size', () => {
     await expect.poll(() => storedSetting(page, 'lookupSize')).toBe('l');
 
     await page.reload();
-    const reopened = await openLookupBook(page);
+    // RD-8: the book comes back by itself.
+    const reopened = await bookFrame(page, 'hipped roof');
     await lookUp(page, reopened, 'hipped', 'roof');
     await expect(lookupModal(page).getByRole('button', { name: 'Large' })).toHaveAttribute(
       'aria-pressed',

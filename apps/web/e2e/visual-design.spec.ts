@@ -62,7 +62,8 @@ test('VIS-4: Jost loads under the production CSP without violations', async ({ p
 
 test('VIS-7: keyboard focus shows a 2 px outline in the ink colour', async ({ page }) => {
   await page.goto('/');
-  const button = page.getByRole('button', { name: 'Open a book' });
+  // The first control on the start screen is the theme toggle (RD-33).
+  const button = page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Light' });
   await expect(button).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(button).toBeFocused();
@@ -89,7 +90,7 @@ test.describe('in a 375 × 667 window', () => {
     await page.locator('input[type="file"]').setInputFiles(JEKYLL);
     const title = page.getByRole('heading', { level: 1, name: JEKYLL_TITLE });
     await expect(title).toBeAttached();
-    for (const name of ['Contents', 'Settings', 'Open another book']) {
+    for (const name of ['Contents', 'Settings', 'Home']) {
       await expect(page.getByRole('button', { name, exact: true })).toBeInViewport({ ratio: 1 });
     }
     expect(await scrollsSideways(page)).toBe(false);

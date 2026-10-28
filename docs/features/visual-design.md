@@ -36,8 +36,8 @@ The palette is the inspiration's six greys. `apps/web/src/theme.ts` is the sourc
 
 Test-after visual work, checked against the mockup and by screenshots in each PR. Accessible names, roles and keys don't change (VIS-6).
 
-- **Open screen:** `LITSNAP` large at top left, a tracked subtitle (`READ · HIGHLIGHT · LOOK UP`), the existing tagline, a short hairline, and an outline pill button **Open a book** with the drop hint beside it in `--ink-2`. On the right, `HOW IT WORKS` with three short lines. A hairline and a footer: _"Your book never leaves this browser."_ and `TERMS`. The whole page stays a drop zone (RD-26).
-- **Top bar:** `CONTENTS` left; the book's title centred in normal case, `--ink-2`, cut with an ellipsis; `SETTINGS · OPEN` right. **OPEN** keeps the accessible name "Open another book" (the visible word starts the name, as WCAG 2.5.3 asks). No border. A button whose panel is open is underlined.
+- **Open screen:** **Light · Dark** pills at top right (RD-33). `LITSNAP` large at top left, a tracked subtitle (`READ · HIGHLIGHT · LOOK UP`), the existing tagline, a short hairline, a filled pill **Continue reading** with the last book's title beside it (RD-32, only when there is one), and an outline pill button **Open a book** with the drop hint beside it in `--ink-2`. On the right, `HOW IT WORKS` with three short lines. A hairline and a footer: _"Your book never leaves this browser."_ and `TERMS`. The whole page stays a drop zone (RD-26).
+- **Top bar:** `CONTENTS` left; the book's title centred in normal case, `--ink-2`, cut with an ellipsis; `SETTINGS · HOME` right. **HOME** goes back to the start screen (RD-30). No border. A button whose panel is open is underlined.
 - **Bottom bar:** the chapter name left in `--ink-2`; on the right a thin progress gauge (about 7rem × 4 px, pill-ended, `--track` with an `--ink` fill) and the percentage in tracked numerals. The gauge is a `progressbar` with its value.
 - **Page arrows:** thin chevrons, centred in the left and right gutters ([reader-chrome.md](reader-chrome.md) CHROME-6).
 - **Contents:** a full-height sheet from the left, under the top bar, with a hairline edge. Chapters in normal case; the current one is marked by a short `--ink` bar before it (and `aria-current`), not bold.
@@ -79,7 +79,7 @@ Then the book's background is `--paper` and its text `--ink` (RD-17 still forces
 
 **VIS-6: names, roles and keys don't change**
 Given the restyled interface
-Then every control keeps its accessible name, role and keyboard behaviour (labels are uppercased by CSS only; **OPEN**'s name is still "Open another book"). The existing unit and end-to-end tests pass without changing how they find elements.
+Then every control keeps its accessible name, role and keyboard behaviour (labels are uppercased by CSS only). _Since the start-screen PR: the reader's "Open another book" became **Home** (RD-30), a deliberate change._. The existing unit and end-to-end tests pass without changing how they find elements.
 
 **VIS-7: focus is always visible**
 Given a control in our interface has keyboard focus
