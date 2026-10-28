@@ -6,12 +6,13 @@ import {
   MAX_LOOKUP_WORDS,
   normalise,
   type DefinitionSection,
+  type ImageSection,
   type HealthResponse,
   type LookupErrorBody,
   type LookupKind,
   type LookupResult,
 } from '@litsnap/shared';
-import { readDefinition, storeDefinition } from './cache';
+import { readDefinition, readImages, storeDefinition, storeImages } from './cache';
 import { DEFINITION_PROVIDERS, lookupDefinition } from './definitions/chain';
 import {
   DEFAULT_TIMEOUT_MS,
@@ -57,7 +58,7 @@ export interface LookupLog {
 
 export interface AppDeps {
   providers: readonly DefinitionProvider[];
-  /** The image chain (API-17). RED PHASE: not called until the implementation PR. */
+  /** The image chain (API-17). */
   images: (term: string, context: ProviderContext) => Promise<ImageOutcome>;
   rateLimit: (env: Env, ip: string) => Promise<RateVerdict>;
   log: (entry: LookupLog) => void;
@@ -95,7 +96,7 @@ const observed = (providers: readonly DefinitionProvider[], entry: LookupLog) =>
   }));
 
 export function createApp(deps: Partial<AppDeps> = {}) {
-  const { providers, rateLimit, log } = { ...DEFAULT_DEPS, ...deps };
+  const { providers, images, rateLimit, log } = { ...DEFAULT_DEPS, ...deps };
   const app = new Hono<{ Bindings: Env }>();
 
   app.use(
@@ -118,11 +119,16 @@ export function createApp(deps: Partial<AppDeps> = {}) {
       ms: 0,
       providers: [],
     };
-    const respond = (body: LookupResult | LookupErrorBody, status: 200 | 400 | 429 | 502) => {
+    const respond = (
+      body: LookupResult | LookupErrorBody,
+      status: 200 | 400 | 429 | 502,
+      complete = status === 200,
+    ) => {
       entry.status = status;
       entry.ms = Date.now() - started;
       log(entry);
-      c.header('Cache-Control', status === 200 ? 'public, max-age=86400' : 'no-store');
+      // A partial answer mustn't be replayed by the browser on Retry (API-21).
+      c.header('Cache-Control', complete ? 'public, max-age=86400' : 'no-store');
       return c.json(body, status);
     };
 
@@ -149,39 +155,73 @@ export function createApp(deps: Partial<AppDeps> = {}) {
       return respond({ error: 'invalid-request' }, 400);
     entry.kind = kind;
 
-    const result: LookupResult = { term };
-    if (kind !== 'image') {
-      const definition = await definitionFor(c, term, entry);
-      if (!definition) return respond({ error: 'upstream-failed' }, 502);
-      result.definition = definition;
-    }
-    if (kind !== 'definition') result.images = { status: 'not-found' };
-    return respond(result, 200);
+    const context: ProviderContext = {
+      // A wrapper, because calling the global `fetch` detached from `globalThis` throws
+      // "Illegal invocation" in Workers.
+      fetch: (input, init) => fetch(input, init),
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+    };
+    // At the same time: one after the other could outlast the client's timeout (API-19).
+    const [definition, imageSection] = await Promise.all([
+      kind === 'image' ? undefined : definitionFor(c, term, entry, context),
+      kind === 'definition' ? undefined : imagesFor(c, term, entry, context),
+    ]);
+    const sections = [definition, imageSection].filter((section) => section !== undefined);
+    if (sections.every(({ status }) => status === 'failed'))
+      return respond({ error: 'upstream-failed' }, 502);
+    const result: LookupResult = {
+      term,
+      ...(definition && { definition }),
+      ...(imageSection && { images: imageSection }),
+    };
+    return respond(result, 200, !sections.some(({ status }) => status === 'failed'));
   });
 
-  /** From the cache, or the providers (then cached); `undefined` if the chain failed. */
+  /** From the cache, or the providers (then cached unless it failed, API-9). */
   async function definitionFor(
     c: Context<{ Bindings: Env }>,
     term: string,
     entry: LookupLog,
-  ): Promise<DefinitionSection | undefined> {
+    context: ProviderContext,
+  ): Promise<DefinitionSection> {
     const cached = await readDefinition(term);
     if (cached) {
       entry.cache = 'hit';
       return cached;
     }
     entry.cache = 'miss';
-    const context = {
-      // A wrapper, because calling the global `fetch` detached from `globalThis` throws
-      // "Illegal invocation" in Workers.
-      fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
-      timeoutMs: DEFAULT_TIMEOUT_MS,
-    };
     const outcome = await lookupDefinition(term, context, observed(providers, entry));
-    if (outcome.status === 'failed') return undefined;
+    if (outcome.status === 'failed') return { status: 'failed' };
     const section: DefinitionSection =
       outcome.status === 'found' ? { status: 'found', ...outcome.definition } : outcome;
     c.executionCtx.waitUntil(storeDefinition(term, section));
+    return section;
+  }
+
+  /** From the cache, or the image chain (then cached unless it failed, API-20). */
+  async function imagesFor(
+    c: Context<{ Bindings: Env }>,
+    term: string,
+    entry: LookupLog,
+    context: ProviderContext,
+  ): Promise<ImageSection> {
+    const started = Date.now();
+    const cached = await readImages(term);
+    if (cached) {
+      entry.images = { cache: 'hit', outcome: cached.status, ms: Date.now() - started };
+      return cached;
+    }
+    const outcome = await images(term, context);
+    entry.images = {
+      cache: 'miss',
+      outcome: outcome.status,
+      ...(outcome.status === 'failed' && { reason: outcome.reason }),
+      ms: Date.now() - started,
+    };
+    if (outcome.status === 'failed') return { status: 'failed' };
+    const section: ImageSection =
+      outcome.status === 'found' ? { status: 'found', images: outcome.images } : outcome;
+    c.executionCtx.waitUntil(storeImages(term, section));
     return section;
   }
 

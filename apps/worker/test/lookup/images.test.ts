@@ -26,24 +26,21 @@ function withSections(definition: ProviderOutcome, images: ImageOutcome) {
 }
 
 describe('API-17: the images section', () => {
-  it.fails(
-    'kind=image: the chain is asked for the normalised term, with the usual context',
-    async () => {
-      const { get, chain } = withSections(FOUND, IMAGES_FOUND);
+  it('kind=image: the chain is asked for the normalised term, with the usual context', async () => {
+    const { get, chain } = withSections(FOUND, IMAGES_FOUND);
 
-      const response = await get(lookupPath('Eave,', 'image'));
+    const response = await get(lookupPath('Eave,', 'image'));
 
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({
-        term: 'eave',
-        images: { status: 'found', images: [IMAGE] },
-      });
-      expect(chain.calls).toEqual(['eave']);
-      expect(chain.contexts[0]?.timeoutMs).toBe(3000);
-    },
-  );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      term: 'eave',
+      images: { status: 'found', images: [IMAGE] },
+    });
+    expect(chain.calls).toEqual(['eave']);
+    expect(chain.contexts[0]?.timeoutMs).toBe(3000);
+  });
 
-  it.fails('kind=both: not found is a section too', async () => {
+  it('kind=both: not found is a section too', async () => {
     const { get, chain } = withSections(FOUND, IMAGES_NOT_FOUND);
 
     expect(await (await get(lookupPath('gutter', 'both'))).json()).toEqual({
@@ -65,7 +62,7 @@ describe('API-17: the images section', () => {
 });
 
 describe('API-18: one section can fail while the other is shown', () => {
-  it.fails('a failed definition next to found images is a 200', async () => {
+  it('a failed definition next to found images is a 200', async () => {
     const { get } = withSections(FAILED, IMAGES_FOUND);
 
     const response = await get(lookupPath('corbel', 'both'));
@@ -78,7 +75,7 @@ describe('API-18: one section can fail while the other is shown', () => {
     });
   });
 
-  it.fails('failed images next to a found definition are a 200', async () => {
+  it('failed images next to a found definition are a 200', async () => {
     const { get } = withSections(FOUND, IMAGES_FAILED);
 
     const response = await get(lookupPath('quoin', 'both'));
@@ -100,7 +97,7 @@ describe('API-18: one section can fail while the other is shown', () => {
     expect(await response.json()).toEqual({ error: 'upstream-failed' });
   });
 
-  it.fails('kind=image with failed images is a 502', async () => {
+  it('kind=image with failed images is a 502', async () => {
     const { get } = withSections(FOUND, IMAGES_FAILED);
 
     const response = await get(lookupPath('parapet', 'image'));
@@ -111,7 +108,7 @@ describe('API-18: one section can fail while the other is shown', () => {
 });
 
 describe('API-19: both sections are looked up at the same time', () => {
-  it.fails('each chain is asked while the other is still working', async () => {
+  it('each chain is asked while the other is still working', async () => {
     // Each side waits for the other to have started. One after the other, the first would give up.
     let definitionStarted: () => void = () => undefined;
     let imagesStarted: () => void = () => undefined;
@@ -154,7 +151,7 @@ describe('API-20: images are cached like definitions', () => {
     );
   });
 
-  it.fails('found images are stored for 30 days, and the next lookup asks no chain', async () => {
+  it('found images are stored for 30 days, and the next lookup asks no chain', async () => {
     const { get, chain } = withSections(FOUND, IMAGES_FOUND);
 
     await get(lookupPath('mansard', 'image'));
@@ -166,7 +163,7 @@ describe('API-20: images are cached like definitions', () => {
     expect(chain.calls).toEqual(['mansard']);
   });
 
-  it.fails('not-found images are stored for 1 day', async () => {
+  it('not-found images are stored for 1 day', async () => {
     const { get } = withSections(FOUND, IMAGES_NOT_FOUND);
 
     await get(lookupPath('gambrel', 'image'));
@@ -176,7 +173,7 @@ describe('API-20: images are cached like definitions', () => {
     expect(await cached?.json()).toEqual({ status: 'not-found' });
   });
 
-  it.fails('failed images are not stored, and the chain is asked again', async () => {
+  it('failed images are not stored, and the chain is asked again', async () => {
     const { get, chain } = withSections(FOUND, IMAGES_FAILED);
 
     await get(lookupPath('truss', 'both'));
@@ -186,7 +183,7 @@ describe('API-20: images are cached like definitions', () => {
     expect(chain.calls).toEqual(['truss', 'truss']);
   });
 
-  it.fails('kind=image and kind=both share the entry', async () => {
+  it('kind=image and kind=both share the entry', async () => {
     const { get, chain } = withSections(FOUND, IMAGES_FOUND);
 
     await get(lookupPath('joist', 'image'));
@@ -196,7 +193,7 @@ describe('API-20: images are cached like definitions', () => {
     expect(both).toMatchObject({ images: { status: 'found' } });
   });
 
-  it.fails('the definition and images entries are independent', async () => {
+  it('the definition and images entries are independent', async () => {
     const { get, chain, wiktionary } = withSections(FOUND, IMAGES_FOUND);
 
     await get(lookupPath('pediment', 'definition'));
@@ -208,7 +205,7 @@ describe('API-20: images are cached like definitions', () => {
 });
 
 describe("API-21: a partial answer isn't kept by the browser", () => {
-  it.fails.each([
+  it.each([
     ['a failed definition', FAILED, IMAGES_FOUND, 'architrave'],
     ['failed images', FOUND, IMAGES_FAILED, 'transom'],
   ])('a 200 with %s is not stored', async (_name, definition, images, term) => {
@@ -230,7 +227,7 @@ describe("API-21: a partial answer isn't kept by the browser", () => {
 });
 
 describe('API-22: logs say how the images went, without the term', () => {
-  it.fails('a miss records the outcome, the reason and the time', async () => {
+  it('a miss records the outcome, the reason and the time', async () => {
     const { get, logs } = withSections(FOUND, IMAGES_FAILED);
 
     await get(lookupPath('lantern', 'image'));
@@ -244,7 +241,7 @@ describe('API-22: logs say how the images went, without the term', () => {
     });
   });
 
-  it.fails('a hit records the cached outcome', async () => {
+  it('a hit records the cached outcome', async () => {
     const { get, logs } = withSections(FOUND, IMAGES_FOUND);
 
     await get(lookupPath('spire', 'both'));
