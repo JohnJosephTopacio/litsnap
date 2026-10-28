@@ -37,6 +37,6 @@ A per-package exception keeps the check strict: a **program** under OFL, or any 
 
 ## Consequences
 
-- About 20 KB of fonts (two weights, Latin, `woff2`; `@fontsource/jost` 5.3.0), cached after the first visit. The package's other subsets (Latin Extended, Cyrillic) are only downloaded if a page uses their characters (`unicode-range`). Text renders in the fallback font until Jost arrives (`font-display: swap`).
+- About 20 KB of fonts (two weights, Latin, `woff2`; `@fontsource/jost` 5.3.0), cached after the first visit. We import only the Latin files (`latin-400.css`, `latin-500.css`), so the package's other subsets aren't even bundled; characters outside Latin fall back to the system font. Text renders in the fallback font until Jost arrives (`font-display: swap`).
 - `pnpm check:licenses` passes only because of the named exception. A new major version of `@fontsource/jost` is reviewed like any other dependency update.
 - Playwright checks that Jost loads under the production CSP and that no font request leaves our origin (VIS-3, VIS-4).

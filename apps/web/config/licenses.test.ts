@@ -54,6 +54,17 @@ describe('TERMS-6: licence allow-list', () => {
       'mystery@1.0.0: no licence',
     ]);
   });
+
+  it('allows the reviewed Jost exception, but not other packages under its licence (decision 0007)', () => {
+    const report = {
+      'OFL-1.1': [
+        { name: '@fontsource/jost', versions: ['5.3.0'], license: 'OFL-1.1' },
+        { name: 'other-font', versions: ['1.0.0'], license: 'OFL-1.1' },
+      ],
+    };
+
+    expect(findDisallowed(report)).toEqual(['other-font@1.0.0: OFL-1.1']);
+  });
 });
 
 describe('TERMS-5: licence notices', () => {
