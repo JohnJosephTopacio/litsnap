@@ -25,6 +25,10 @@ export type ImageOutcome =
   | { status: 'not-found' }
   | { status: 'failed'; reason: string };
 
+/** A failed step, labelled with the request that failed (IMG-16): `details: HTTP 503`. */
+export const failedAt = (request: string, reason: string) =>
+  ({ status: 'failed', reason: `${request}: ${reason}` }) as const;
+
 export interface ImageSource {
   name: 'wikipedia' | 'commons';
   /** Never throws: errors are `failed` (IMG-1). */

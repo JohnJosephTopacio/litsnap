@@ -3,7 +3,7 @@ import type { LookupImage } from '@litsnap/shared';
 import { getJson, pageTitle } from '../definitions/http';
 import { isRecord } from '../definitions/text';
 import { filePages, toLookupImage } from './files';
-import { MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
+import { failedAt, MAX_IMAGES, type ImageOutcome, type ImageSource } from './types';
 
 const MEDIA_LIST = 'https://en.wikipedia.org/api/rest_v1/page/media-list/';
 const API = 'https://en.wikipedia.org/w/api.php';
@@ -22,9 +22,9 @@ export const wikipediaImages: ImageSource = {
     if (title === undefined) return NOT_FOUND;
     const list = await getJson(MEDIA_LIST + title, context, [400, 404]);
     if (list.status === 'missing') return NOT_FOUND;
-    if (list.status === 'failed') return list;
+    if (list.status === 'failed') return failedAt('media-list', list.reason);
     if (!isRecord(list.body) || !Array.isArray(list.body.items))
-      return { status: 'failed', reason: 'unexpected response' };
+      return failedAt('media-list', 'unexpected response');
 
     const gallery = list.body.items
       .filter(isRecord)
@@ -48,7 +48,7 @@ export const wikipediaImages: ImageSource = {
       context,
     );
     if (reply.status === 'missing') return NOT_FOUND;
-    if (reply.status === 'failed') return reply;
+    if (reply.status === 'failed') return failedAt('details', reply.reason);
     const pages = new Map(reply.pages.filter(isRecord).map((page) => [page.title, page] as const));
     const images = gallery
       .map(({ file, caption }) => toLookupImage(pages.get(file), caption))
