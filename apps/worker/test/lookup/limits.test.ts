@@ -31,7 +31,7 @@ function fakeBudget(verdict: RateVerdict | 'throws') {
 const SPENT: RateVerdict = { allowed: false, retryAfterSeconds: 12 };
 
 describe('API-23: an IPv6 connection counts as one client', () => {
-  it.fails.each([
+  it.each([
     ['2001:db8:1:2::1', '2001:db8:1:2::/64'],
     ['2001:db8:1:2:ffff::9', '2001:db8:1:2::/64'],
     ['2001:DB8:0001:0002:0:0:0:1', '2001:db8:1:2::/64'],
@@ -55,7 +55,7 @@ describe('API-23: an IPv6 connection counts as one client', () => {
     expect(clientKey(ip)).toBe(key);
   });
 
-  it.fails('addresses in one /64 share the limit; another /64 has its own', async () => {
+  it('addresses in one /64 share the limit; another /64 has its own', async () => {
     const { get } = setUp({
       providers: [fakeProvider('wiktionary', FOUND)],
       rateLimit: checkRateLimit,
@@ -70,7 +70,7 @@ describe('API-23: an IPv6 connection counts as one client', () => {
 });
 
 describe('API-13: a limit other than RATE_LIMIT', () => {
-  it.fails('hit(now, limit) counts against that limit', async () => {
+  it('hit(now, limit) counts against that limit', async () => {
     const stub = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName('custom-limit'));
     const limit = { requests: 2, windowMs: 1000 };
 
@@ -86,7 +86,7 @@ describe('API-24: a budget for Wikimedia, shared by everyone', () => {
     expect(IMAGE_BUDGET).toEqual({ requests: 50, windowMs: 60_000 });
   });
 
-  it.fails('checkImageBudget is one limiter for everyone, with that budget', async () => {
+  it('checkImageBudget is one limiter for everyone, with that budget', async () => {
     const verdicts = [];
     for (let i = 0; i < IMAGE_BUDGET.requests + 1; i++) verdicts.push(await checkImageBudget(env));
 
@@ -96,53 +96,47 @@ describe('API-24: a budget for Wikimedia, shared by everyone', () => {
     expect(await named.hit(Date.now(), IMAGE_BUDGET)).toMatchObject({ allowed: false });
   });
 
-  it.fails(
-    'an uncached image lookup asks the budget once; a cached one and definitions do not',
-    async () => {
-      const budget = fakeBudget({ allowed: true });
-      const { get } = setUp({
-        providers: [fakeProvider('wiktionary', FOUND)],
-        images: fakeImages(IMAGES_FOUND).images,
-        imageBudget: budget.imageBudget,
-      });
+  it('an uncached image lookup asks the budget once; a cached one and definitions do not', async () => {
+    const budget = fakeBudget({ allowed: true });
+    const { get } = setUp({
+      providers: [fakeProvider('wiktionary', FOUND)],
+      images: fakeImages(IMAGES_FOUND).images,
+      imageBudget: budget.imageBudget,
+    });
 
-      await get(lookupPath('architrave beam', 'both'));
-      await get(lookupPath('architrave beam', 'image'));
-      await get(lookupPath('architrave beam', 'definition'));
+    await get(lookupPath('architrave beam', 'both'));
+    await get(lookupPath('architrave beam', 'image'));
+    await get(lookupPath('architrave beam', 'definition'));
 
-      expect(budget.asked()).toBe(1);
-    },
-  );
+    expect(budget.asked()).toBe(1);
+  });
 
-  it.fails(
-    'a spent budget fails the images without asking Wikimedia, and nothing is cached',
-    async () => {
-      const chain = fakeImages(IMAGES_FOUND);
-      const { get, logs } = setUp({
-        providers: [fakeProvider('wiktionary', FOUND)],
-        images: chain.images,
-        imageBudget: fakeBudget(SPENT).imageBudget,
-      });
+  it('a spent budget fails the images without asking Wikimedia, and nothing is cached', async () => {
+    const chain = fakeImages(IMAGES_FOUND);
+    const { get, logs } = setUp({
+      providers: [fakeProvider('wiktionary', FOUND)],
+      images: chain.images,
+      imageBudget: fakeBudget(SPENT).imageBudget,
+    });
 
-      const response = await get(lookupPath('keystone arch', 'both'));
+    const response = await get(lookupPath('keystone arch', 'both'));
 
-      expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject({
-        definition: { status: 'found' },
-        images: { status: 'failed' },
-      });
-      expect(chain.calls).toEqual([]);
-      expect(await caches.default.match(imagesCacheKey('keystone arch'))).toBeUndefined();
-      expect(logs[0]?.images).toEqual({
-        cache: 'miss',
-        outcome: 'failed',
-        reason: 'budget',
-        ms: expect.any(Number) as number,
-      });
-    },
-  );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      definition: { status: 'found' },
+      images: { status: 'failed' },
+    });
+    expect(chain.calls).toEqual([]);
+    expect(await caches.default.match(imagesCacheKey('keystone arch'))).toBeUndefined();
+    expect(logs[0]?.images).toEqual({
+      cache: 'miss',
+      outcome: 'failed',
+      reason: 'budget',
+      ms: expect.any(Number) as number,
+    });
+  });
 
-  it.fails('kind=image with a spent budget is a 502, like any failed image lookup', async () => {
+  it('kind=image with a spent budget is a 502, like any failed image lookup', async () => {
     const { get } = setUp({
       providers: [fakeProvider('wiktionary', FOUND)],
       imageBudget: fakeBudget(SPENT).imageBudget,
@@ -151,7 +145,7 @@ describe('API-24: a budget for Wikimedia, shared by everyone', () => {
     expect((await get(lookupPath('voussoir', 'image'))).status).toBe(502);
   });
 
-  it.fails('fails closed: a budget that cannot be checked fails the images', async () => {
+  it('fails closed: a budget that cannot be checked fails the images', async () => {
     const chain = fakeImages(IMAGES_FOUND);
     const { get, logs } = setUp({
       providers: [fakeProvider('wiktionary', FOUND)],
