@@ -1,6 +1,6 @@
 # Feature: Image viewer
 
-> Milestone: M4 · Status: in progress · Product spec: [spec.md §4.4](../spec.md#44-image-content)
+> Milestone: M4 · Status: done (#39) · Product spec: [spec.md §4.4](../spec.md#44-image-content)
 
 ## Goal
 
