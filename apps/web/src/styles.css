@@ -334,6 +334,49 @@ foliate-view {
   opacity: 0.8;
 }
 
+/* The image grid (image-grid.md): 3 columns, 2 at size S (GRID-1). */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lookup-modal[data-size='s'] .image-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.image-grid li {
+  min-width: 0;
+}
+
+/* Holds the place at the image's aspect ratio (set inline) until it arrives (GRID-3). */
+.image-frame {
+  width: 100%;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  overflow: hidden;
+}
+
+.image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* One line, cut with an ellipsis; the whole credit is in the tooltip (GRID-5). */
+.image-credit {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .lookup-footer {
   padding-top: 0.5rem;
   border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);

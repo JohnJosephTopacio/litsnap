@@ -1,6 +1,6 @@
 # Feature: Image grid
 
-> Milestone: M4 · Status: in progress · Product spec: [spec.md §4.4, §7](../spec.md#44-image-content) · Decision: [0005](../decisions/0005-images-fetched-not-embedded.md)
+> Milestone: M4 · Status: done (#38) · Product spec: [spec.md §4.4, §7](../spec.md#44-image-content) · Decision: [0005](../decisions/0005-images-fetched-not-embedded.md)
 
 ## Goal
 
