@@ -38,6 +38,7 @@ describe('API-17: the images section', () => {
     });
     expect(chain.calls).toEqual(['eave']);
     expect(chain.contexts[0]?.timeoutMs).toBe(3000);
+    expect(chain.contexts[0]?.detailsTimeoutMs).toBe(10_000);
   });
 
   it('kind=both: not found is a section too', async () => {
@@ -173,6 +174,21 @@ describe('API-20: images are cached like definitions', () => {
     expect(await cached?.json()).toEqual({ status: 'not-found' });
   });
 
+  it('incomplete images are stored for 1 day, and the reader never sees the flag', async () => {
+    const { get } = withSections(FOUND, {
+      status: 'found',
+      images: [IMAGE],
+      incomplete: { reason: 'commons: HTTP 503' },
+    });
+
+    const body = await (await get(lookupPath('pilaster', 'image'))).json();
+    const cached = await caches.default.match(imagesCacheKey('pilaster'));
+
+    expect(body).toEqual({ term: 'pilaster', images: { status: 'found', images: [IMAGE] } });
+    expect(cached?.headers.get('Cache-Control')).toBe(`max-age=${String(NOT_FOUND_TTL_SECONDS)}`);
+    expect(await cached?.json()).toEqual({ status: 'found', images: [IMAGE] });
+  });
+
   it('failed images are not stored, and the chain is asked again', async () => {
     const { get, chain } = withSections(FOUND, IMAGES_FAILED);
 
@@ -255,6 +271,23 @@ describe('API-22: logs say how the images went, without the term', () => {
     expect(logs[1]?.images).toEqual({
       cache: 'hit',
       outcome: 'found',
+      ms: expect.any(Number) as number,
+    });
+  });
+
+  it('an incomplete result logs the reason', async () => {
+    const { get, logs } = withSections(FOUND, {
+      status: 'found',
+      images: [IMAGE],
+      incomplete: { reason: 'commons: HTTP 503' },
+    });
+
+    await get(lookupPath('cornerstone', 'image'));
+
+    expect(logs[0]?.images).toEqual({
+      cache: 'miss',
+      outcome: 'found',
+      reason: 'commons: HTTP 503',
       ms: expect.any(Number) as number,
     });
   });

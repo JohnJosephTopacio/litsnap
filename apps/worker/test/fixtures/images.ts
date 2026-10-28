@@ -26,7 +26,7 @@ export const wikidataUrl = (id: string) =>
 export const categoryUrl = (category: string) =>
   `${COMMONS_API}?action=query&format=json&formatversion=2&generator=categorymembers&` +
   new URLSearchParams({ gcmtitle: `Category:${category}` }).toString() +
-  `&gcmtype=file&gcmlimit=20&${FILE_DETAILS_QUERY}`;
+  `&gcmtype=file&gcmlimit=10&${FILE_DETAILS_QUERY}`;
 
 // --- The article -------------------------------------------------------------------------------
 
