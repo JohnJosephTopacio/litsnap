@@ -1,6 +1,6 @@
 # Feature: Image providers
 
-> Milestone: M4 · Status: done (#33, #34) · Product spec: [spec.md §4.4, §5](../spec.md#5-lookup-chain)
+> Milestone: M4 · Status: done (#33, #34; production fixes #41–#43) · Product spec: [spec.md §4.4, §5](../spec.md#5-lookup-chain)
 
 ## Goal
 
