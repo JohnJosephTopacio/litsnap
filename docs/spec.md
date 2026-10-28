@@ -86,7 +86,8 @@ Out of scope for v1: notes, bookmarks, user highlights, sync, accounts, mobile-p
 
 - Books, reading progress, settings, and lookup history live **only in the user's browser** (IndexedDB). Books are never uploaded.
 - The Worker only ever receives the normalised lookup term — never book content beyond that.
-- Book content is untrusted. A Content Security Policy stops scripts inside books from running and blocks books from loading remote resources (e.g. tracking pixels). See [decision 0002](decisions/0002-csp-for-book-content.md).
+- Lookup images are downloaded by the browser directly from Wikimedia (`upload.wikimedia.org`), with no cookies and no referrer. Wikimedia sees the reader's IP address and which images were requested, under the [Wikimedia Foundation's privacy policy](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy). See [decision 0005](decisions/0005-images-fetched-not-embedded.md).
+- Book content is untrusted. A Content Security Policy stops scripts inside books from running and blocks books from loading remote resources (e.g. tracking pixels), including from the image host our own code fetches from. See [decision 0002](decisions/0002-csp-for-book-content.md) and [0005](decisions/0005-images-fetched-not-embedded.md).
 - Analytics: Cloudflare Web Analytics (cookieless, no consent banner needed).
 
 ## 8. Architecture

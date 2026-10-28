@@ -74,6 +74,6 @@ These don't apply yet, but **must** be met when the feature that needs them arri
 
 - Each later milestone that talks to the network widens the policy explicitly, in a reviewed PR:
   - M3 adds the Worker origin to `connect-src`.
-  - M4 adds Wikimedia's image host to `img-src`.
+  - M4 adds Wikimedia's image host to `connect-src`, not `img-src`: our code downloads images and shows them as `blob:` URLs, so books still can't load remote images ([decision 0005](0005-images-fetched-not-embedded.md)).
   - M6 adds Cloudflare Web Analytics.
 - RD-21 (scripts in books never run) is a required test. Weakening `script-src` needs a new decision record.
