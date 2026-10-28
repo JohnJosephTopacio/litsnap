@@ -1,5 +1,5 @@
 // Where the Worker keeps finished lookups (API-7…10). Decision: docs/decisions/0004.
-import type { DefinitionSection } from '@litsnap/shared';
+import type { DefinitionSection, ImageSection } from '@litsnap/shared';
 
 /** Found definitions: 30 days (API-7). */
 export const FOUND_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -14,16 +14,27 @@ export const definitionCacheKey = (term: string) =>
 export const imagesCacheKey = (term: string) =>
   `https://lookup-cache.invalid/v1/images/${encodeURIComponent(term)}`;
 
-export async function readDefinition(term: string): Promise<DefinitionSection | undefined> {
-  const cached = await caches.default.match(definitionCacheKey(term));
-  return cached ? await cached.json<DefinitionSection>() : undefined;
+async function read<Section>(key: string): Promise<Section | undefined> {
+  const cached = await caches.default.match(key);
+  return cached ? await cached.json<Section>() : undefined;
 }
 
 /** Never called for failures (API-9). */
-export function storeDefinition(term: string, section: DefinitionSection): Promise<void> {
+function store(key: string, section: { status: 'found' | 'not-found' }): Promise<void> {
   const ttl = section.status === 'found' ? FOUND_TTL_SECONDS : NOT_FOUND_TTL_SECONDS;
   return caches.default.put(
-    definitionCacheKey(term),
+    key,
     Response.json(section, { headers: { 'Cache-Control': `max-age=${String(ttl)}` } }),
   );
 }
+
+export const readDefinition = (term: string) => read<DefinitionSection>(definitionCacheKey(term));
+export const storeDefinition = (
+  term: string,
+  section: DefinitionSection & { status: 'found' | 'not-found' },
+) => store(definitionCacheKey(term), section);
+export const readImages = (term: string) => read<ImageSection>(imagesCacheKey(term));
+export const storeImages = (
+  term: string,
+  section: ImageSection & { status: 'found' | 'not-found' },
+) => store(imagesCacheKey(term), section);
