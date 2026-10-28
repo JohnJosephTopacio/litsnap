@@ -26,7 +26,7 @@ Run from the repo root:
 
 Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vitest-plugin` (not the deprecated `vitest-pool-workers`). TypeScript is pinned to 6.0 until `typescript-eslint` supports 7. Packages with install scripts must be allow-listed under `allowBuilds` in `pnpm-workspace.yaml`.
 
-## Codebase notes (learned in M1–M4)
+## Codebase notes (learned in M1–M4 and the M4 image incident)
 
 The README has the repository layout. Things that aren't obvious from reading the code:
 
@@ -60,6 +60,11 @@ The README has the repository layout. Things that aren't obvious from reading th
 - **Playwright `name` matching is a substring:** `{ name: 'Large' }` also matched _"Enlarge: …"_. Use `exact: true` for short names.
 - **Tests that count things break when docs grow:** TERMS-1 counts the Terms' sections. Run the full e2e suite (`pnpm test:e2e`) before pushing any UI or `public/` change, not just the specs you touched.
 - **This machine can't reach `upload.wikimedia.org`** either (curl, Node and local `workerd` get resets), like `litsnap.pages.dev`. Playwright's browser can. So the live check's CORS test only runs in CI.
+- **Wikimedia's Action API throttles per IP** (anonymous: 10 a minute, as of 2026), and Cloudflare's outgoing IPs are shared, so anonymous requests from the Worker failed with Wikimedia's misleading "technical problem" `503`, whose `Retry-After` counts down to the next minute. The Worker sends the `WIKIMEDIA_TOKEN` secret (owner-only OAuth 2, basic rights) and Wikimedia's cookies on Action API requests only (decision 0006). REST requests are cached by Wikimedia and stay anonymous. Never retry past `Retry-After`; their guidelines forbid it.
+- **Shared budgets fail closed:** the per-IP limit fails open (API-14), but the Wikimedia budget (API-24) fails closed, because failing open would send unlimited requests in LitSnap's name.
+- **Live checks must use production timeouts.** A 10 s allowance once hid that file details took 4–10 s against a 3 s timeout (#41). `test:live` runs anonymous, so Wikimedia may throttle it.
+- **Reading production logs:** only the owner can, at dash.cloudflare.com → Workers & Pages → litsnap-worker → Observability. Our line is the row without a level; ask for its `images.reason` (IMG-16 names the request and Wikimedia's server and `Retry-After`). Cloudflare's invocation logs are off (they held IPs and locations). Our lines still carry the term, which is disclosed (spec §7).
+- **Secrets:** set in the Cloudflare dashboard as type **Secret**. `wrangler deploy` from CI replaces plain variables but keeps secrets. Declare their types in `src/secrets.d.ts`, because `wrangler types` only knows `wrangler.jsonc`. Tests get a stand-in through `miniflare.bindings` in `vitest.config.ts`.
 - **Issue references in commits:** GitHub closes an issue when a merged commit says e.g. `fix: … #17`. If the issue must stay open, keep its number out of `fix:` commit messages and write "Part of #N" only in the PR body.
 
 ## How we work

@@ -56,7 +56,9 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - **The PR plan grew from 7 to 8**: the modal learned to show a failed section (#36) before the Worker started sending one (#37), so no reader saw a failure as "not found".
 - After M4 (2026-10-28), image lookups failed in production. #41 gave Wikimedia's slow licence metadata 10 s, asked about 10 files instead of 20, and showed partial results. Wikimedia's API still answers the Worker with `503`, which #42 logs in more detail (IMG-16). The reasons showed a per-minute throttle shared by everyone on the same IP, so #43 gives the Worker a Wikimedia identity: an owner-only OAuth 2 token and Wikimedia's cookies ([decision 0006](decisions/0006-wikimedia-identity.md)).
 - After #43, a budget protects LitSnap's Wikimedia account: 50 uncached image lookups a minute for everyone (API-24), and IPv6 clients are limited per `/64` (API-23), in #44–#45.
-- **Open privacy question:** Cloudflare attaches each request's URL, term included, to the Worker's log lines, kept for 3 days (lookup-api.md, "Cloudflare's own request logs"). #42 turns off the invocation logs, which also held IPs and locations.
+- Since #43, image lookups work reliably in production: new words find their images, the first time in up to ~11 s while Wikimedia makes their licence data.
+- **Logs (decided, #46):** Cloudflare attaches each request's URL, term included, to the Worker's log lines, kept for 3 days. That's accepted and disclosed in spec §7 and the Terms. #42 turned off the invocation logs, which also held IPs and locations.
+- Optional follow-ups: give the weekly live check the token as a GitHub secret (it's anonymous, so Wikimedia throttles it now and then); crop grid thumbnails to a uniform box (tall images make uneven rows).
 - Follow-ups, not started: a flaky local run of `apps/web/config/eslint-no-html-injection.test.ts` under load (#34 "Look closely"); `Restrictions` (trademarks, personality rights) on Commons files isn't used (image-providers "Notes").
 
 ## M5 — PDF

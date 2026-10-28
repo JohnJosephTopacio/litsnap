@@ -29,6 +29,8 @@ The reader goes live as soon as M1 merges, so a Terms of Use page has to go live
 >
 > **4. Lookups and third-party content.** When you look up a word, only that word is sent to LitSnap's server, which asks Wiktionary, the Free Dictionary API and Wikipedia for a definition, and Wikipedia and Wikimedia Commons for images. Your browser then downloads those images directly from Wikimedia, without cookies, so Wikimedia sees your IP address and which images were shown, under the [Wikimedia Foundation's privacy policy](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy).
 >
+> To find and fix problems, LitSnap's server keeps a record of each lookup for up to 3 days, including the word, but not your IP address or location. Looked-up words and their results are also stored for up to 30 days so that repeat lookups are fast; these aren't linked to you.
+>
 > Definitions and images belong to their authors and are shown under the licences named next to them. LitSnap doesn't check them and can't promise they're accurate or suitable.
 >
 > **5. Provided "as is".** LitSnap is provided "as is" and "as available", without warranties of any kind. It may contain errors, and it may change or stop at any time.
