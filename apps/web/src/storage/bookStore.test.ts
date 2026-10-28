@@ -2,7 +2,7 @@
 // Node, not jsdom: fake-indexeddb clones values with Node's structuredClone, which turns jsdom's
 // Blob into a plain object. Node's own Blob round-trips correctly, as real browsers' do.
 //
-// Acceptance criteria STO-1…8 and STO-11…15 from docs/features/book-storage.md.
+// Acceptance criteria STO-1…8 and STO-11…16 from docs/features/book-storage.md.
 import 'fake-indexeddb/auto';
 import { openDB } from 'idb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -193,6 +193,30 @@ describe('openBookStore', () => {
 
       expect((await store.getCurrentBook())?.id).toBe(b.id);
       expect(await store.getBook(a.id)).toBeDefined();
+    });
+  });
+
+  describe('STO-16: where the reader left', () => {
+    it('is false when nothing was ever set, so older installs go straight into the book', async () => {
+      const store = await open();
+
+      expect(await store.getLeftAtStart()).toBe(false);
+    });
+
+    it('round-trips, survives a fresh session, and leaves the current book alone', async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      const first = await openBookStore({ name, now, storage: null });
+      const saved = await first.saveBook(book());
+      await first.setCurrentBook(saved.id);
+      await first.setLeftAtStart(true);
+      first.close();
+
+      const second = await openBookStore({ name, now, storage: null });
+      expect(await second.getLeftAtStart()).toBe(true);
+      expect((await second.getCurrentBook())?.id).toBe(saved.id);
+
+      await second.setLeftAtStart(false);
+      expect(await second.getLeftAtStart()).toBe(false);
     });
   });
 
