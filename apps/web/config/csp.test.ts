@@ -18,15 +18,22 @@ describe('CONTENT_SECURITY_POLICY', () => {
     expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
   });
 
-  it('allows no remote hosts except the Worker, so books cannot load remote resources', () => {
+  it('allows remote hosts only in connect-src, so books cannot load remote resources', () => {
     const others = CONTENT_SECURITY_POLICY.split('; ').filter((d) => !d.startsWith('connect-src '));
     expect(others.join('; ')).not.toMatch(/https?:|\*/);
   });
 
-  it('CLIENT-8: lets our code fetch exactly the lookup Worker (decision 0003)', () => {
-    expect(directive('connect-src')).toBe(`connect-src 'self' blob: ${LOOKUP_ORIGIN}`);
+  it('CLIENT-8: lets our code fetch the lookup Worker (decision 0003)', () => {
+    expect(directive('connect-src')?.split(' ')).toContain(LOOKUP_ORIGIN);
     expect(new URL(LOOKUP_ORIGIN).origin).toBe(LOOKUP_ORIGIN);
     expect(LOOKUP_ORIGIN).toMatch(/^https:\/\//);
+  });
+
+  it('GRID-9: lets our code fetch images from Wikimedia, and books still load none (decision 0005)', () => {
+    expect(directive('connect-src')).toBe(
+      `connect-src 'self' blob: ${LOOKUP_ORIGIN} https://upload.wikimedia.org`,
+    );
+    expect(directive('img-src')).toBe("img-src 'self' blob: data:");
   });
 });
 
