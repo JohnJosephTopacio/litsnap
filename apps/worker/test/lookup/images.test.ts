@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { FOUND_TTL_SECONDS, imagesCacheKey, NOT_FOUND_TTL_SECONDS } from '../../src/cache';
 import type { ImageOutcome } from '../../src/images/types';
+import { CookieJar } from '../../src/images/wikimedia';
 import {
   FAILED,
   fakeImages,
@@ -39,6 +40,10 @@ describe('API-17: the images section', () => {
     expect(chain.calls).toEqual(['eave']);
     expect(chain.contexts[0]?.timeoutMs).toBe(3000);
     expect(chain.contexts[0]?.detailsTimeoutMs).toBe(10_000);
+    // The WIKIMEDIA_TOKEN secret (vitest.config.ts gives the tests one), and one cookie jar for
+    // the Worker (IMG-17, IMG-18).
+    expect(chain.contexts[0]?.wikimediaToken).toBe('test-token');
+    expect(chain.contexts[0]?.cookies).toBeInstanceOf(CookieJar);
   });
 
   it('kind=both: not found is a section too', async () => {
@@ -59,6 +64,18 @@ describe('API-17: the images section', () => {
       'images',
     );
     expect(chain.calls).toEqual([]);
+  });
+});
+
+describe('API-17: one cookie jar for every lookup', () => {
+  it('passes the same jar each time', async () => {
+    const { get, chain } = withSections(FOUND, IMAGES_NOT_FOUND);
+
+    await get(lookupPath('lintel stone', 'image'));
+    await get(lookupPath('lintel block', 'image'));
+
+    expect(chain.contexts[0]?.cookies).toBeDefined();
+    expect(chain.contexts[1]?.cookies).toBe(chain.contexts[0]?.cookies);
   });
 });
 

@@ -122,6 +122,30 @@ const overloaded: Reply = () =>
   });
 
 describe.each(STEPS)('%s', (name, step) => {
+  describe('IMG-17: Action API requests are authenticated', () => {
+    it(
+      step.actionApi
+        ? 'sends the token on this Action API request'
+        : 'sends no token on this REST request, which Wikimedia serves from its cache',
+      async () => {
+        const fake = fakeFetch({ ...step.before, [step.url]: status(404) });
+
+        await step.run({ fetch: fake.fetch, timeoutMs: 1000, wikimediaToken: 'secret-token' });
+
+        expect(fake.requests.at(-1)?.headers.get('Authorization')).toBe(
+          step.actionApi ? 'Bearer secret-token' : null,
+        );
+      },
+    );
+
+    it('sends no token without one', async () => {
+      const { fake, outcome } = run(step, status(404));
+      await outcome;
+
+      for (const request of fake.requests) expect(request.headers.get('Authorization')).toBeNull();
+    });
+  });
+
   describe('IMG-16: a failure says where it happened', () => {
     const label = LABELS[name] ?? '';
 
