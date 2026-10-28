@@ -1,6 +1,6 @@
 # Feature: Image grid
 
-> Milestone: M4 · Status: done (#38) · Product spec: [spec.md §4.4, §7](../spec.md#44-image-content) · Decision: [0005](../decisions/0005-images-fetched-not-embedded.md)
+> Milestone: M4 · Status: done (#38); GRID-3 and GRID-10 changed in M4.5 ([visual-design.md](visual-design.md)) · Product spec: [spec.md §4.4, §7](../spec.md#44-image-content) · Decision: [0005](../decisions/0005-images-fetched-not-embedded.md)
 
 ## Goal
 
@@ -46,7 +46,7 @@ Then its `src` is a `blob:` URL made from what `loadImage(thumbUrl)` downloaded,
 
 **GRID-3: placeholders keep the grid still**
 Given a thumbnail is still downloading
-Then its place in the grid is already there, with the image's aspect ratio (`width` / `height`), so the grid doesn't jump as images arrive.
+Then its place in the grid is already there, as a square (GRID-10), so the grid doesn't jump as images arrive. _(Until M4.5 it had the image's own aspect ratio.)_
 
 **GRID-4: a broken image is left out**
 Given a thumbnail's download fails (GRID-2), or the browser can't decode it (`<img>` fires `error`)
@@ -71,6 +71,10 @@ Then the section says _"No good image found."_ (MODAL-9). Given they `failed`, M
 **GRID-9: the CSP lets our code fetch images, and only that (decision 0005)**
 Given the production build
 Then `connect-src` also allows `https://upload.wikimedia.org`, and `img-src` is still `'self' blob: data:`. In Playwright, against the production CSP, the grid shows images from `upload.wikimedia.org` with no CSP violations, and a book that references an image on `upload.wikimedia.org` still can't load it (RD-22).
+
+**GRID-10: square thumbnails (M4.5)**
+Given images of different shapes
+Then every thumbnail is a square of the column's width, filled by the image cropped around its centre (`object-fit: cover`), so the rows line up. The enlarged view still shows the whole image (VIEW-1). This was an M4 follow-up: tall images made uneven rows.
 
 ## Notes for implementation
 
