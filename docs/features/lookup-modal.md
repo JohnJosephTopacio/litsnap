@@ -1,6 +1,6 @@
 # Feature: Lookup modal
 
-> Milestone: M2 · Status: done · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
+> Milestone: M2, failed sections M4 · Status: M2 done; MODAL-19/20 done (#36) · Product spec: [spec.md §4.2–4.5](../spec.md#42-lookup-modal)
 
 ## Goal
 
@@ -67,6 +67,17 @@ Then the Images section says _"No good image found."_ (spec §4.4). The image gr
 **MODAL-10: errors and Retry**
 Given the lookup fails (network error, rate limit)
 Then each requested section says _"Couldn't load this. Try again."_ with a **Retry** button that repeats the lookup. The Google link stays available.
+
+**MODAL-19: a section that failed on its own** _(M4)_
+Given the result has a section with `status: 'failed'`: the Worker couldn't look that part up, but did look up the other (lookup-api API-18)
+Then that section says _"Couldn't load this. Try again."_ with a **Retry** button, and the other section shows its content as usual. A failure is never shown as _"No definition found."_ or _"No good image found."_: those mean the sources were asked and had nothing.
+
+**MODAL-20: retrying one section** _(M4)_
+Given a section that failed on its own (MODAL-19)
+When the reader presses its **Retry**
+Then only that section shows _"Loading…"_, and the client is asked for that section's kind alone (`definition` or `image`), so the part that worked isn't fetched again. The other section keeps its content. If the retry fails too, by a thrown error or by `failed` again, the section shows MODAL-19's message and Retry again. Closing the modal cancels a retry like any lookup (MODAL-11).
+
+MODAL-10 is unchanged: when the whole lookup failed, every section's Retry repeats the whole lookup.
 
 **MODAL-11: closing cancels**
 Given a lookup is still loading

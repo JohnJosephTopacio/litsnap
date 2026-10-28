@@ -41,6 +41,11 @@ describe('createMockLookupClient', () => {
     expect((await lookup(MOCK_TERMS.found, 'image')).images).toEqual({ status: 'not-found' });
   });
 
+  it('fails only the images for the partial term, and only with kind=both', async () => {
+    expect((await lookup(MOCK_TERMS.partial, 'both')).images).toEqual({ status: 'failed' });
+    expect((await lookup(MOCK_TERMS.partial, 'image')).images).toEqual({ status: 'not-found' });
+  });
+
   it('fails for the error term', async () => {
     await expect(lookup(MOCK_TERMS.error, 'both')).rejects.toThrow();
   });
