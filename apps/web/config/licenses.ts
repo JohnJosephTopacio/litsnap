@@ -15,8 +15,12 @@ export const ALLOWED_LICENSES = new Set([
   'Unlicense',
 ]);
 
-/** Reviewed one-off exceptions: package name → why it's acceptable. Empty for now. */
-export const ALLOWED_PACKAGES: Record<string, string> = {};
+/** Reviewed one-off exceptions: package name → why it's acceptable. */
+export const ALLOWED_PACKAGES: Record<string, string> = {
+  '@fontsource/jost':
+    'OFL-1.1 font, our interface typeface. The OFL binds the font, not the software bundling it; ' +
+    'its licence ships in the notices (docs/decisions/0007-jost-typeface.md).',
+};
 
 /**
  * Whether an SPDX licence expression is acceptable. `A OR B` needs either side (we may choose),

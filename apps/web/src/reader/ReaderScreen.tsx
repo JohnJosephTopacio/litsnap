@@ -39,6 +39,22 @@ interface ReaderScreenProps {
 
 type Panel = 'toc' | 'settings';
 
+/** A thin page-turn arrow; its button carries the name. */
+function Chevron({ path }: { path: string }) {
+  return (
+    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24">
+      <path
+        d={path}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Whether a key press is ours to handle: not while typing, and not with Ctrl/Alt/Meta. */
 function isReaderKey(event: KeyboardEvent) {
   if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return false;
@@ -203,7 +219,8 @@ export function ReaderScreen(props: ReaderScreenProps) {
     };
   }, [onKeyDown]);
 
-  const progress = location && `${String(Math.round(location.fraction * 100))}%`;
+  const percent = location && Math.round(location.fraction * 100);
+  const progress = percent === undefined ? undefined : `${String(percent)}%`;
 
   return (
     <div
@@ -219,10 +236,13 @@ export function ReaderScreen(props: ReaderScreenProps) {
         if (file) onDropFile(file);
       }}
     >
+      {/* The bars are drawn over the reader's reserved margins, never beside the book
+          (visual-design.md, Layout). */}
       <header className="top-bar">
         <button
           ref={tocButton}
           type="button"
+          className="bar-button"
           aria-expanded={panel === 'toc'}
           onClick={() => {
             togglePanel('toc');
@@ -231,19 +251,29 @@ export function ReaderScreen(props: ReaderScreenProps) {
           Contents
         </button>
         <h1 className="book-title">{book.title}</h1>
-        <button
-          ref={settingsButton}
-          type="button"
-          aria-expanded={panel === 'settings'}
-          onClick={() => {
-            togglePanel('settings');
-          }}
-        >
-          Settings
-        </button>
-        <button type="button" onClick={props.onChooseFile}>
-          Open another book
-        </button>
+        <div className="top-actions">
+          <button
+            ref={settingsButton}
+            type="button"
+            className="bar-button"
+            aria-expanded={panel === 'settings'}
+            onClick={() => {
+              togglePanel('settings');
+            }}
+          >
+            Settings
+          </button>
+          <span aria-hidden="true">·</span>
+          {/* VIS-6: the visible word starts the accessible name (WCAG 2.5.3). */}
+          <button
+            type="button"
+            className="bar-button"
+            aria-label="Open another book"
+            onClick={props.onChooseFile}
+          >
+            Open
+          </button>
+        </div>
       </header>
       {status && <div className="reader-notice">{status}</div>}
       <div className="reader-body">
@@ -271,7 +301,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
           aria-label="Previous page"
           onClick={() => controls.current?.goLeft()}
         >
-          ‹
+          <Chevron path="M15 5l-7 7 7 7" />
         </button>
         <ReaderView
           ref={controls}
@@ -291,12 +321,26 @@ export function ReaderScreen(props: ReaderScreenProps) {
           aria-label="Next page"
           onClick={() => controls.current?.goRight()}
         >
-          ›
+          <Chevron path="M9 5l7 7-7 7" />
         </button>
       </div>
       <footer className="bottom-bar" aria-label="Reading progress">
         <span className="chapter">{location?.tocItem?.label}</span>
-        <span>{progress}</span>
+        {location && (
+          <div className="progress">
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="Progress through the book"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={percent}
+            >
+              <div className="progress-fill" style={{ width: progress }} />
+            </div>
+            <span className="progress-value">{progress}</span>
+          </div>
+        )}
       </footer>
       {menuOpen && <SelectionMenu ref={menu} anchor={selection.anchor} onChoose={choose} />}
       {lookup && (
