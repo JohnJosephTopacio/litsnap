@@ -44,19 +44,27 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - The weekly `live-check` workflow asks the real sources through our providers, so a source changing its API (e.g. Wiktionary's RESTBase endpoint retiring) shows up within a week, despite the cache.
 - Follow-ups, not started: make `fakeWorker` an automatic Playwright fixture, so a new e2e test can't call the real Worker by accident (#31 "Look closely"); if the rate limiting binding is ever enforced on Free, it could replace the Durable Object (decision 0004).
 
-## M4 — Images
+## M4 — Images ✅
 
-> Ready for M4:
->
-> - **The type:** `ImageSection`/`LookupImage` in `packages/shared/src/lookup.ts` are still a draft. The Worker answers `images: { status: 'not-found' }` (API-4), and the modal says _"No good image found."_ (MODAL-9).
-> - **The Worker:** image sources can follow the definition providers' shape (`ProviderContext`, found / not-found / failed, never throw), with their own cache section, `v1/images/<term>` (API-10). The Wikipedia summary response already has `thumbnail` and `originalimage`.
-> - **The CSP decision to make first:** `img-src` only allows `'self' blob: data:`, so thumbnails from `upload.wikimedia.org` need either a new decision record or images proxied through the Worker. Book iframes inherit `img-src`, so allowing Wikimedia would also let books load images from there.
-> - **The live check** (`apps/worker/live/`) should cover the image sources too.
+> Done 2026-10-28 (#33–#39). Specs: [image-providers](features/image-providers.md), [image-grid](features/image-grid.md), [image-viewer](features/image-viewer.md); M4 sections of [lookup-api](features/lookup-api.md) (API-17…22) and [lookup-modal](features/lookup-modal.md) (MODAL-19/20). Decision: [0005](decisions/0005-images-fetched-not-embedded.md) (images are fetched by our code, not embedded).
 
-- The Wikipedia article's gallery images → its Commons category; up to 6 freely licensed thumbnails, enlarge, attribution, alt text. Spec: [image-providers](features/image-providers.md).
-- "No good image found" empty state; "Search Google" fallback link.
+- The Worker finds up to 6 freely licensed images: the gallery of the Wikipedia article whose title is exactly the term, then that article's Commons category (through Wikidata). No free-text Commons search, which returns unrelated files. Licences are an allow-list (CC0, public domain, CC BY, CC BY-SA); fair-use files and files without a credit are skipped.
+- `/lookup` runs the definition and image chains at the same time. One section can fail on its own (`{ status: 'failed' }`, a 200 that the browser mustn't keep), and the modal retries just that section.
+- The modal shows a credited grid (2 or 3 columns by size), and enlarges an image in place, with its full credit, Previous/Next and `←`/`→`. `Esc` goes back to the grid first.
+- The browser downloads images itself from `upload.wikimedia.org` and shows them as `blob:` URLs. The CSP's `connect-src` allows that host and `img-src` doesn't, so books still can't load remote images (RD-22 tests it). Downloads send no cookies or referrer. Spec §7 and the Terms page (new section 4) say Wikimedia sees the reader's IP.
+- The weekly live check covers the image sources and that `upload.wikimedia.org` still sends CORS headers.
+- **The PR plan grew from 7 to 8**: the modal learned to show a failed section (#36) before the Worker started sending one (#37), so no reader saw a failure as "not found".
+- Follow-ups, not started: a flaky local run of `apps/web/config/eslint-no-html-injection.test.ts` under load (#34 "Look closely"); `Restrictions` (trademarks, personality rights) on Commons files isn't used (image-providers "Notes").
 
 ## M5 — PDF
+
+> Ready for M5:
+>
+> - **The CSP decides the setup again.** pdf.js runs its parser in a Web Worker: `worker-src` isn't in the CSP yet, and a bundled worker file needs `'self'` (decision 0002 expected this for zip.js). pdf.js must run with `isEvalSupported: false`, because `script-src 'self'` blocks `eval`. A new decision record is needed if anything else has to be loosened.
+> - **PDFs are untrusted too.** A PDF can carry JavaScript and links. pdf.js doesn't run PDF JavaScript by default, which must stay so; RD-21's idea ("scripts in books never run") needs a PDF version.
+> - **Lookups:** the selection watcher (`createSelectionWatcher`) gets its events from foliate's documents today. pdf.js's text layer is a normal DOM in our own page, not an iframe, so the "another realm" rules (CLAUDE.md) don't apply there. Its coordinates don't need the iframe offset either.
+> - **Licence:** pdf.js is Apache-2.0, on the allow-list (TERMS-6).
+> - **Fixtures:** text and scanned PDFs, generated in `e2e/fixtures.ts`, like the EPUBs (spec §10).
 
 - pdf.js with text layer, zoom, inverted dark mode.
 - Scanned-PDF detection and message.

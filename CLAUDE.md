@@ -26,7 +26,7 @@ Run from the repo root:
 
 Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vitest-plugin` (not the deprecated `vitest-pool-workers`). TypeScript is pinned to 6.0 until `typescript-eslint` supports 7. Packages with install scripts must be allow-listed under `allowBuilds` in `pnpm-workspace.yaml`.
 
-## Codebase notes (learned in M1–M3)
+## Codebase notes (learned in M1–M4)
 
 The README has the repository layout. Things that aren't obvious from reading the code:
 
@@ -53,6 +53,13 @@ The README has the repository layout. Things that aren't obvious from reading th
 - **Check red tests against a throwaway implementation:** before pushing an `it.fails` PR, write a quick implementation, flip the tests to `it`, run them and mutation-check them, then restore the stubs and keep the draft for the implementation PR. In M3 this caught a broken test before review and found every missing test before the implementation PR.
 - **Running mutation checks:** apply each mutation as a literal string replacement, run the relevant tests, restore. E2E mutations rebuild the app each time (~25 s), so run a batch in the background. If a mutation survives, either add the missing test or delete the code it proves useless (M2 removed a resize listener this way).
 - **Tool gotchas on this machine:** `curl` can't reach `litsnap.pages.dev` or `en.wikipedia.org` (connection resets), though Playwright's browser and the Workers runtime can. Check the live site with a temporary probe spec using `test.use({ baseURL: 'https://litsnap.pages.dev' })`. Long inline heredocs sometimes fail to parse in the Bash tool: write the script to the scratchpad and run it. The file-writing tools turn `\u00AD`-style escapes into the real (invisible) characters, so write escapes with a script (backslash from `String.fromCharCode(92)`). Git Bash rewrites arguments starting with `/` (`"</p>"`) into Windows paths: prefix the command with `MSYS_NO_PATHCONV=1`.
+- **Images (M4):** the Worker's `images/chain.ts` finds the article (`findArticle`), then asks every `ImageSource` at once and merges them. Image URLs must be on `upload.wikimedia.org`: the APIs now return `thumb.wikimedia.org`, which fails CORS `fetch`, so the Worker swaps the host (IMG-9). Wikimedia only serves standard thumbnail widths (120, 250, 330, 500, 960, 1280, 1920); others answer `400`.
+- **Never put an image host in `img-src`:** books inherit our CSP. Our code `fetch`es images (`lookup/imageLoader.ts`) and shows `blob:` URLs, and the host goes in `connect-src` (decision 0005). RD-22 tests that books still can't load from it.
+- **A section can fail on its own** (`{ status: 'failed' }`, API-18). A 200 with a failed section is `no-store`, or the browser would answer Retry from its cache (API-21). The modal retries that section alone, through a lazy `useLookup` (MODAL-20). When a new status reaches the client, ship the client's handling first (#36 before #37).
+- **`Esc` inside the `<dialog>`:** cancelling the `keydown` (`preventDefault`) stops the dialog closing. That's how the image viewer takes the first `Esc` (VIEW-5). Don't fight the `cancel` event, which Chrome limits.
+- **Playwright `name` matching is a substring:** `{ name: 'Large' }` also matched _"Enlarge: …"_. Use `exact: true` for short names.
+- **Tests that count things break when docs grow:** TERMS-1 counts the Terms' sections. Run the full e2e suite (`pnpm test:e2e`) before pushing any UI or `public/` change, not just the specs you touched.
+- **This machine can't reach `upload.wikimedia.org`** either (curl, Node and local `workerd` get resets), like `litsnap.pages.dev`. Playwright's browser can. So the live check's CORS test only runs in CI.
 - **Issue references in commits:** GitHub closes an issue when a merged commit says e.g. `fix: … #17`. If the issue must stay open, keep its number out of `fix:` commit messages and write "Part of #N" only in the PR body.
 
 ## How we work
