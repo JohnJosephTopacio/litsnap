@@ -86,7 +86,7 @@ afterEach(() => {
 const images = () => screen.queryAllByRole('img');
 
 describe('GRID-1: a grid of thumbnails', () => {
-  it("shows each image in the Worker's order, with its alt text, and no buttons yet", async () => {
+  it("shows each image in the Worker's order, with its alt text", async () => {
     const { load, calls } = controlledLoader();
     render(<ImageGrid images={[image('Barn'), image('Mill'), image('Hut')]} load={load} />);
 
@@ -99,7 +99,6 @@ describe('GRID-1: a grid of thumbnails', () => {
       'A photo of the mill',
       'A photo of the hut',
     ]);
-    expect(screen.queryAllByRole('button')).toEqual([]);
   });
 });
 
@@ -307,5 +306,235 @@ describe('GRID-7: nothing left behind', () => {
     fireEvent.error(screen.getByRole('img'));
 
     expect(revoked).toEqual(made);
+  });
+});
+
+// VIEW-1…6 from docs/features/image-viewer.md. Esc against the real <dialog>, and the book staying
+// put (VIEW-7), are in e2e/image-viewer.spec.ts.
+
+/** The grid with `names`, every thumbnail downloaded. */
+async function loadedGrid(names: string[], overrides: Record<string, Partial<LookupImage>> = {}) {
+  const loader = controlledLoader();
+  const view = render(
+    <ImageGrid images={names.map((name) => image(name, overrides[name]))} load={loader.load} />,
+  );
+  await settle(() => {
+    for (const call of loader.calls) call.resolve();
+  });
+  return { ...loader, ...view };
+}
+
+const enlarge = (alt: string) => screen.getByRole('button', { name: `Enlarge: ${alt}` });
+const shown = () => screen.getByRole('img');
+const viewer = () => screen.getByRole('group', { name: 'Enlarged image' });
+const back = () => screen.getByRole('button', { name: '← Back to images' });
+
+describe('VIEW-1: thumbnails are buttons', () => {
+  it('names each button after its image', async () => {
+    await loadedGrid(['Barn', 'Mill']);
+
+    expect(enlarge('A photo of the barn')).toBeInTheDocument();
+    expect(enlarge('A photo of the mill')).toBeInTheDocument();
+  });
+});
+
+describe('VIEW-2: the enlarged view', () => {
+  it('replaces the grid with the image, its caption, position and full credit', async () => {
+    await loadedGrid(['Barn', 'Mill', 'Hut']);
+
+    fireEvent.click(enlarge('A photo of the mill'));
+
+    expect(screen.queryByRole('list')).toBeNull();
+    expect(shown()).toHaveAttribute('alt', 'A photo of the mill');
+    expect(viewer().querySelector('figcaption')).toHaveTextContent('A photo of the mill');
+    expect(within(viewer()).getByText('2 of 3')).toBeInTheDocument();
+    expect(viewer().querySelector('.viewer-credit')).toHaveTextContent(
+      'Mill · by Sample Author · CC BY-SA 4.0 · View on Wikimedia Commons',
+    );
+    const licence = screen.getByRole('link', { name: 'CC BY-SA 4.0' });
+    const source = screen.getByRole('link', { name: 'View on Wikimedia Commons' });
+    expect(licence).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/4.0');
+    expect(source).toHaveAttribute('href', 'https://commons.wikimedia.org/wiki/File:Mill.jpg');
+    for (const link of [licence, source]) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  it('shows the thumbnail at once, then the large image when it has downloaded', async () => {
+    const { calls } = await loadedGrid(['Barn']);
+    const thumbnail = shown().getAttribute('src');
+
+    fireEvent.click(enlarge('A photo of the barn'));
+    expect(shown()).toHaveAttribute('src', thumbnail);
+    expect(calls.at(-1)?.url).toBe(image('Barn').fullUrl);
+    await settle(() => {
+      calls.at(-1)?.resolve();
+    });
+
+    expect(shown().getAttribute('src')).toBe(made.at(-1));
+    expect(shown().getAttribute('src')).not.toBe(thumbnail);
+  });
+
+  it('links only web URLs, and shows the credit as text', async () => {
+    const barn = image('Barn');
+    await loadedGrid(['Barn'], {
+      Barn: {
+        title: '<i>Barn</i>',
+        attribution: {
+          ...barn.attribution,
+          licenceUrl: 'javascript:alert(1)',
+          sourceUrl: 'data:,x',
+        },
+      },
+    });
+
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    expect(screen.queryAllByRole('link')).toEqual([]);
+    expect(viewer().querySelector('.viewer-credit')).toHaveTextContent(
+      '<i>Barn</i> · by Sample Author',
+    );
+    expect(viewer().querySelector('.viewer-credit i')).toBeNull();
+  });
+});
+
+describe('VIEW-3: going back', () => {
+  it('focuses Back, which shows the grid with focus on the image that was showing', async () => {
+    await loadedGrid(['Barn', 'Mill']);
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    expect(back()).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(back());
+
+    expect(screen.getByRole('list')).toBeInTheDocument();
+    expect(enlarge('A photo of the mill')).toHaveFocus();
+  });
+});
+
+describe('VIEW-4: stepping through', () => {
+  it('Previous and Next, disabled at the ends', async () => {
+    await loadedGrid(['Barn', 'Mill']);
+    fireEvent.click(enlarge('A photo of the barn'));
+    const previous = () => screen.getByRole('button', { name: 'Previous' });
+    const next = () => screen.getByRole('button', { name: 'Next' });
+
+    expect(previous()).toBeDisabled();
+    fireEvent.click(next());
+    expect(shown()).toHaveAttribute('alt', 'A photo of the mill');
+    expect(next()).toBeDisabled();
+    fireEvent.click(previous());
+    expect(shown()).toHaveAttribute('alt', 'A photo of the barn');
+  });
+
+  it('← and →, without wrapping around', async () => {
+    await loadedGrid(['Barn', 'Mill']);
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    fireEvent.keyDown(viewer(), { key: 'ArrowLeft' });
+    expect(shown()).toHaveAttribute('alt', 'A photo of the barn');
+    fireEvent.keyDown(viewer(), { key: 'ArrowRight' });
+    expect(shown()).toHaveAttribute('alt', 'A photo of the mill');
+    fireEvent.keyDown(viewer(), { key: 'ArrowRight' });
+    expect(shown()).toHaveAttribute('alt', 'A photo of the mill');
+    fireEvent.keyDown(viewer(), { key: 'ArrowLeft' });
+    expect(shown()).toHaveAttribute('alt', 'A photo of the barn');
+  });
+
+  it('skips images the grid left out', async () => {
+    const { load, calls } = controlledLoader();
+    render(<ImageGrid images={[image('Barn'), image('Gone'), image('Hut')]} load={load} />);
+    await settle(() => {
+      calls[0]?.resolve();
+      calls[1]?.reject();
+      calls[2]?.resolve();
+    });
+
+    fireEvent.click(enlarge('A photo of the barn'));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(shown()).toHaveAttribute('alt', 'A photo of the hut');
+    expect(within(viewer()).getByText('2 of 2')).toBeInTheDocument();
+  });
+});
+
+describe('VIEW-5: Esc goes back before it closes (the viewer side)', () => {
+  it('goes back to the grid and cancels the Esc, so the dialog stays open', async () => {
+    await loadedGrid(['Barn']);
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    const notCancelled = fireEvent.keyDown(viewer(), { key: 'Escape' });
+
+    expect(notCancelled).toBe(false);
+    expect(screen.getByRole('list')).toBeInTheDocument();
+  });
+});
+
+describe("VIEW-6: the large image's download", () => {
+  it('downloads it once, however often the image is opened', async () => {
+    const { calls } = await loadedGrid(['Barn']);
+    fireEvent.click(enlarge('A photo of the barn'));
+    await settle(() => {
+      calls.at(-1)?.resolve();
+    });
+    fireEvent.click(back());
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    expect(calls.filter(({ url }) => url === image('Barn').fullUrl)).toHaveLength(1);
+  });
+
+  it('keeps the thumbnail if it fails', async () => {
+    const { calls } = await loadedGrid(['Barn']);
+    const thumbnail = shown().getAttribute('src');
+    fireEvent.click(enlarge('A photo of the barn'));
+
+    await settle(() => {
+      calls.at(-1)?.reject();
+    });
+
+    expect(shown()).toHaveAttribute('src', thumbnail);
+  });
+
+  it("doesn't download a small original twice", async () => {
+    const small = image('Tiny').thumbUrl;
+    const { calls } = await loadedGrid(['Tiny'], { Tiny: { fullUrl: small } });
+
+    fireEvent.click(enlarge('A photo of the tiny'));
+
+    expect(calls.map(({ url }) => url)).toEqual([small]);
+  });
+
+  it('aborts the download and revokes its URL when the grid goes', async () => {
+    const { calls, unmount } = await loadedGrid(['Barn', 'Mill']);
+    fireEvent.click(enlarge('A photo of the barn'));
+    await settle(() => {
+      calls.at(-1)?.resolve();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    const pending = calls.at(-1);
+
+    unmount();
+
+    expect(pending?.url).toBe(image('Mill').fullUrl);
+    expect(pending?.signal.aborted).toBe(true);
+    expect(made).toHaveLength(3);
+    expect(revoked).toEqual(made);
+  });
+});
+
+describe('VIEW-6: a late download', () => {
+  it('makes no blob: URL for a large image that arrives after the grid has gone', async () => {
+    const { calls, unmount } = await loadedGrid(['Barn']);
+    fireEvent.click(enlarge('A photo of the barn'));
+    const pending = calls.at(-1);
+    const before = made.length;
+
+    unmount();
+    await settle(() => {
+      pending?.resolve();
+    });
+
+    expect(made).toHaveLength(before);
   });
 });
