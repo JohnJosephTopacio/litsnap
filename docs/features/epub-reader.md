@@ -12,14 +12,14 @@ There are two views and no router (the router arrives in M6 with the library pag
 
 1. **Open screen**: "Open a book" button (file picker, `accept=".epub,application/epub+zip"`) and a drop zone covering the page. It also shows any error message from the last attempt.
 2. **Reader**:
-   - Top bar: TOC button and book title on the left. Settings button and "Open another book" on the right.
+   - Top bar: TOC button and book title on the left. Settings button and "Open another book" on the right (since M4.5: Settings and Home, RD-30).
    - Settings popover: font size − / + with the current %, Light/Dark toggle, Paginated/Scrolled toggle.
    - Bottom bar: progress % and current chapter title.
    - Prev/next arrows at the page edges.
 
 Visual styling is test-after polish and not part of the criteria below. The chrome must fit at 375 px wide.
 
-**Since M4.5** the look is [visual-design.md](visual-design.md) and the top bar reads `CONTENTS` · title (centred) · `SETTINGS · OPEN`; the settings also have Lookup size and Controls. The chrome fades out while reading and comes back on hover, a click on blank space, or `Tab`: [reader-chrome.md](reader-chrome.md). The criteria below still hold; the page arrows became the gutters (CHROME-6).
+**Since M4.5** the look is [visual-design.md](visual-design.md) and the top bar reads `CONTENTS` · title (centred) · `SETTINGS · HOME`; the settings also have Lookup size and Controls. The chrome fades out while reading and comes back on hover, a click on blank space, or `Tab`: [reader-chrome.md](reader-chrome.md). The criteria below still hold; the page arrows became the gutters (CHROME-6).
 
 ## Opening a book
 
@@ -77,13 +77,13 @@ Then the book still opens, and _"Not enough browser storage to save this book."_
 
 **RD-7: open another book**
 Given a book is open
-When the user chooses "Open another book" and picks a different EPUB
+When the user goes Home (RD-30) and opens a different EPUB
 Then the new book opens and becomes the current book.
 
 **RD-26: drop onto the reader**
 Given a book is open
 When an EPUB is dropped anywhere on the reader, including onto the book's page itself
-Then it opens as with "Open another book" (RD-7), and the browser doesn't navigate away to the dropped file.
+Then it opens as with RD-7, and the browser doesn't navigate away to the dropped file.
 
 **RD-29: books that position their `<body>` still render**
 Given a book whose page sets `position: absolute; width: 100%` on `<body>` (common on covers of EPUBs converted from online readers)
@@ -95,7 +95,7 @@ _Why:_ foliate widens its frame to fit the content, and an absolutely positioned
 ### Position and reopening
 
 **RD-8: reopen at saved position**
-Given the user read to chapter 3, then reloaded the page
+Given the user read to chapter 3, then reloaded the page (without going Home first, RD-31)
 When the app starts
 Then the same book opens at the same position, without the open screen appearing.
 
@@ -113,6 +113,29 @@ Then the open screen shows, with no error message.
 Given the stored blob for the current book fails to open
 When the app starts
 Then the open screen shows _"This book couldn't be reopened. Please open the file again."_
+
+### Start screen (M4.5)
+
+Added after the visual-design PR (owner request, 2026-10-28): a way back to the start screen, and the theme there. The start screen is the open screen above.
+
+**RD-30: Home**
+Given a book is open
+When the user presses **Home** in the top bar
+Then the start screen shows. The reading position is saved first (STO-10), and the book stays stored and current. To open another book, the start screen has **Open a book** and the drop zone (RD-7); dropping a file on the reader still works (RD-26).
+
+**RD-31: back where you left**
+Given the user went Home
+When the page reloads, or the site is visited again later
+Then the start screen shows, not the book (STO-16). Once a book is open again (Continue reading, or a new file), a reload goes straight back into it (RD-8).
+
+**RD-32: Continue reading**
+Given a current book is stored
+When the start screen shows
+Then it has a **Continue reading** button, with the book's title beside it (as text, RD-24). Pressing it opens the book at its saved position. With no stored current book (none yet, or RD-10) there is no button.
+
+**RD-33: theme on the start screen**
+Given the start screen
+Then it has **Light** and **Dark** buttons at the top right, in a group named "Theme", the one in use pressed (`aria-pressed`): the OS's theme until one is picked (RD-16). Picking one sets the same saved setting as Settings → Theme, so the start screen, the reader and the book all follow it, including after a reload.
 
 ### Navigation
 
