@@ -17,6 +17,8 @@ export interface Tokens {
   track: string;
   /** The lookup modal's backdrop. */
   dim: string;
+  /** Under cards that float: the settings panel, the selection menu, the lookup modal. */
+  shadow: string;
 }
 
 export const TOKENS = {
@@ -28,6 +30,7 @@ export const TOKENS = {
     rule: '#beb8ad',
     track: '#e6e1d7',
     dim: 'rgb(51 47 40 / 32%)',
+    shadow: '0 1rem 3rem rgb(17 17 17 / 12%)',
   },
   dark: {
     paper: '#111111',
@@ -37,5 +40,6 @@ export const TOKENS = {
     rule: '#333333',
     track: '#333333',
     dim: 'rgb(0 0 0 / 55%)',
+    shadow: '0 1rem 3rem rgb(0 0 0 / 50%)',
   },
 } as const satisfies Record<Theme, Tokens>;

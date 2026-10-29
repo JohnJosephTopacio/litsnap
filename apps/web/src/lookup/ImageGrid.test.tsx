@@ -118,7 +118,7 @@ describe('GRID-2: our code downloads the images (the grid side)', () => {
 });
 
 describe('GRID-3: placeholders keep the grid still', () => {
-  it("holds each image's place, with its aspect ratio, until it has downloaded", () => {
+  it("holds each image's place until it has downloaded, square whatever the image's shape (GRID-10)", () => {
     const { load } = controlledLoader();
     render(
       <ImageGrid
@@ -130,8 +130,10 @@ describe('GRID-3: placeholders keep the grid still', () => {
     const places = screen.getAllByRole('listitem');
     expect(places).toHaveLength(2);
     expect(images()).toEqual([]);
-    expect(places[0]?.querySelector('.image-frame')).toHaveStyle({ aspectRatio: '1000 / 800' });
-    expect(places[1]?.querySelector('.image-frame')).toHaveStyle({ aspectRatio: '300 / 900' });
+    // The square comes from CSS (GRID-10): no per-image shape inline, which would override it.
+    for (const place of places) {
+      expect(place.querySelector('.image-frame')?.getAttribute('style')).toBeNull();
+    }
   });
 });
 

@@ -185,12 +185,14 @@ function Section(props: {
       aria-labelledby={titleId}
       aria-busy={lookup.status === 'loading'}
     >
-      <h3 id={titleId}>{props.title}</h3>
+      <h3 id={titleId} className="label">
+        {props.title}
+      </h3>
       {lookup.status === 'loading' && <p>Loading…</p>}
       {(lookup.status === 'error' || failedAlone) && (
         <>
           <p>Couldn&apos;t load this. Try again.</p>
-          <button type="button" onClick={retry}>
+          <button type="button" className="pill-option" onClick={retry}>
             Retry
           </button>
         </>
@@ -265,7 +267,13 @@ export function LookupModal({ request, client, size, onSizeChange, ...props }: L
               </button>
             ))}
           </div>
-          <button ref={closeButton} type="button" aria-label="Close" onClick={close}>
+          <button
+            ref={closeButton}
+            type="button"
+            className="lookup-close"
+            aria-label="Close"
+            onClick={close}
+          >
             ×
           </button>
         </header>

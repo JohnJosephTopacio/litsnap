@@ -15,6 +15,7 @@ const CSS_NAMES: Record<keyof Tokens, string> = {
   rule: '--rule',
   track: '--track',
   dim: '--dim',
+  shadow: '--shadow',
 };
 
 /** The custom properties declared in `:root[data-theme='<theme>'] { … }` in styles.css. */
@@ -53,6 +54,23 @@ describe.each(THEMES)('%s theme', (theme) => {
     );
 
     expect(cssTokens(theme)).toEqual(expected);
+  });
+
+  it("VIS-1: the Terms page's colours are the tokens", () => {
+    const css = readFileSync(new URL('./terms.css', import.meta.url), 'utf8');
+    // Light on :root, dark on :root inside the prefers-color-scheme: dark query.
+    const media = css.indexOf('@media (prefers-color-scheme: dark)');
+    const part = theme === 'light' ? css.slice(0, media) : css.slice(media);
+    const declared = [...part.matchAll(/(--[\w-]+):\s*([^;]+);/g)];
+    const byName = Object.fromEntries(
+      Object.entries(CSS_NAMES).map(([key, name]) => [name, t[key as keyof Tokens]]),
+    );
+
+    expect(media).toBeGreaterThan(0);
+    expect(declared.length).toBeGreaterThan(0);
+    for (const [, name = '', value = ''] of declared) {
+      expect(value.trim().toLowerCase(), name).toBe(byName[name]);
+    }
   });
 
   it("VIS-1: the book's colours are the tokens", () => {

@@ -1,4 +1,4 @@
-// GRID-1…3, 5 and 9 from docs/features/image-grid.md, against `vite preview` (the production build
+// GRID-1…3, 5, 9 and 10 from docs/features/image-grid.md, against `vite preview` (the production build
 // and CSP). The Worker is faked by `fakeWorker`, and Wikimedia by `fakeWikimedia` (e2e/images.ts).
 import { expect, test, type Page } from '@playwright/test';
 import { dragSelect, lookupMenu, lookupModal, openLookupBook } from './selection';
@@ -70,16 +70,34 @@ test('GRID-1: 3 columns at M and L, 2 at S', async ({ page }) => {
   }
 });
 
-test("GRID-3: a thumbnail still downloading holds its place, at the image's aspect ratio", async ({
-  page,
-}) => {
+test('GRID-3: a thumbnail still downloading holds its place, as a square', async ({ page }) => {
   await fakeWikimedia(page, 'Tower');
   const section = await lookUpImages(page);
   await expect(section.getByRole('img')).toHaveCount(2);
 
   const tower = section.getByRole('listitem').nth(2).locator('.image-frame');
   const box = await tower.boundingBox();
-  expect(box && box.width / box.height).toBeCloseTo(300 / 900, 1);
+  expect(box && box.width / box.height).toBeCloseTo(1, 2);
+});
+
+test('GRID-10: every thumbnail is a square, the image cropped to fill it', async ({ page }) => {
+  await fakeWikimedia(page);
+  const section = await lookUpImages(page);
+  await expect(section.getByRole('img')).toHaveCount(3);
+
+  // Barn and Mill are 1000 × 800, Tower 300 × 900: all three boxes come out the same square.
+  const boxes = await section.locator('.image-frame').evaluateAll((frames) =>
+    frames.map((frame) => {
+      const { width, height } = frame.getBoundingClientRect();
+      return { width: Math.round(width), height: Math.round(height) };
+    }),
+  );
+  expect(boxes).toHaveLength(3);
+  for (const box of boxes) expect(box).toEqual(boxes[0]);
+  expect(boxes[0]?.width).toBe(boxes[0]?.height);
+  for (const img of await section.getByRole('img').all()) {
+    expect(await img.evaluate((el) => getComputedStyle(el).objectFit)).toBe('cover');
+  }
 });
 
 test('GRID-5: each thumbnail is credited, with links that open in new tabs', async ({ page }) => {
