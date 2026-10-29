@@ -82,6 +82,15 @@ function foliateStubs(): Plugin {
 export default defineConfig({
   plugins: [react(), foliateStubs(), cloudflareHeaders(), thirdPartyLicenses()],
   resolve: { alias: { 'foliate-js': FOLIATE_DIR } },
+  // Two pages: the app, and the Terms page (a stylesheet, no script: TERMS-3).
+  build: {
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        terms: fileURLToPath(new URL('./terms.html', import.meta.url)),
+      },
+    },
+  },
   // Same policy as production, so Playwright tests what ships (decision 0002).
   preview: { headers: { 'Content-Security-Policy': CONTENT_SECURITY_POLICY } },
   test: {

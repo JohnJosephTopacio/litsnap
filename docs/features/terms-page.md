@@ -10,7 +10,7 @@ The reader goes live as soon as M1 merges, so a Terms of Use page has to go live
 
 ## Page
 
-- A static page at `/terms` (`apps/web/public/terms.html`), so no router is needed. M6 may move it into the app's router.
+- A static page at `/terms` (`apps/web/terms.html`, a second Vite build entry with a stylesheet and no script since M4.5, so it shares our fonts and colours), so no router is needed. M6 may move it into the app's router.
 - No JavaScript. It follows the OS light/dark preference using CSS only.
 - It is served under the same CSP as the rest of the site ([decision 0002](../decisions/0002-csp-for-book-content.md)).
 - A **"Terms"** link appears in the app footer: on the open screen and in the reader's settings popover. The link opens in a new tab, so the reader isn't interrupted.
