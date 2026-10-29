@@ -173,7 +173,7 @@ export function ImageGrid({ images, load = loadImage }: { images: LookupImage[];
     return (
       <div role="group" aria-label="Enlarged image" className="image-viewer" onKeyDown={onKeyDown}>
         <div className="viewer-bar">
-          <button ref={back} type="button" onClick={closeViewer}>
+          <button ref={back} type="button" className="pill-option" onClick={closeViewer}>
             ← Back to images
           </button>
           <span className="viewer-position">
@@ -181,6 +181,7 @@ export function ImageGrid({ images, load = loadImage }: { images: LookupImage[];
           </span>
           <button
             type="button"
+            className="pill-option"
             disabled={!previous}
             onClick={() => {
               if (previous) view(previous);
@@ -190,6 +191,7 @@ export function ImageGrid({ images, load = loadImage }: { images: LookupImage[];
           </button>
           <button
             type="button"
+            className="pill-option"
             disabled={!next}
             onClick={() => {
               if (next) view(next);
@@ -256,8 +258,8 @@ export function ImageGrid({ images, load = loadImage }: { images: LookupImage[];
                 view(image);
               }}
             >
-              {/* Holds the image's place at its aspect ratio until it arrives (GRID-3). */}
-              <div className="image-frame" style={ratio(image)}>
+              {/* A square (CSS) that holds the image's place until it arrives (GRID-3, GRID-10). */}
+              <div className="image-frame">
                 {url && (
                   <img
                     src={url}

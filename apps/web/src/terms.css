@@ -1,0 +1,91 @@
+/* The Terms page (terms.html), in the app's look: docs/features/visual-design.md. It has no script,
+   so it can't read the saved theme: it follows the OS. Colours are src/theme.ts's; theme.test.ts
+   fails if they differ (VIS-1). */
+@import '@fontsource/jost/latin-400.css';
+@import '@fontsource/jost/latin-500.css';
+
+:root {
+  color-scheme: light;
+  --paper: #f6f4ee;
+  --ink: #111111;
+  --ink-2: #333333;
+  --rule: #beb8ad;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #111111;
+    --ink: #e6e1d7;
+    --ink-2: #beb8ad;
+    --rule: #333333;
+  }
+}
+
+body {
+  margin: 0;
+  padding: clamp(2rem, 8vh, 4.5rem) 1rem 4rem;
+  background: var(--paper);
+  color: var(--ink);
+  font:
+    1rem/1.65 Jost,
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.01em;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 2.5rem 0 0.5rem;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+}
+
+/* Tracked labels; uppercase by CSS only, so the headings' text keeps its case. */
+h2 {
+  margin: 2.25rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+p {
+  margin: 0;
+}
+
+p + p {
+  margin-top: 0.75rem;
+}
+
+.updated {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-2);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+main > p:first-child a {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+:where(a):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}

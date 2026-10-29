@@ -25,11 +25,14 @@ function Choice<T extends string>(props: {
 }) {
   return (
     <div role="group" aria-label={props.label} className="settings-row">
-      <span aria-hidden="true">{props.label}</span>
+      <span aria-hidden="true" className="label">
+        {props.label}
+      </span>
       {props.options.map(([value, text]) => (
         <button
           key={value}
           type="button"
+          className="pill-option"
           aria-pressed={props.value === value}
           disabled={props.disabled}
           onClick={() => {
@@ -59,27 +62,31 @@ export function SettingsPanel({ settings, theme, fixedLayout, onChange }: Settin
         </p>
       )}
       <div role="group" aria-label="Text size" className="settings-row">
-        <span aria-hidden="true">Text size</span>
+        <span aria-hidden="true" className="label">
+          Text size
+        </span>
         <button
           type="button"
+          className="pill-option"
           aria-label="Smaller text"
           disabled={fixedLayout || size <= FONT_MIN}
           onClick={() => {
             onChange({ fontSize: size - FONT_STEP });
           }}
         >
-          −
+          A−
         </button>
         <output aria-live="polite">{size}%</output>
         <button
           type="button"
+          className="pill-option"
           aria-label="Larger text"
           disabled={fixedLayout || size >= FONT_MAX}
           onClick={() => {
             onChange({ fontSize: size + FONT_STEP });
           }}
         >
-          +
+          A+
         </button>
       </div>
       <Choice<Theme>
@@ -118,7 +125,7 @@ export function SettingsPanel({ settings, theme, fixedLayout, onChange }: Settin
         }}
       />
       {/* New tab, so the reader is never interrupted (TERMS-4). */}
-      <a href="/terms" target="_blank" rel="noopener noreferrer">
+      <a className="label" href="/terms" target="_blank" rel="noopener noreferrer">
         Terms
       </a>
     </section>

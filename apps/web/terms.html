@@ -1,57 +1,13 @@
 <!doctype html>
-<!-- Static on purpose: no scripts (TERMS-3). Spec: docs/features/terms-page.md -->
+<!-- Static on purpose: no scripts (TERMS-3), only a stylesheet. A Vite build entry, so it can
+     use our bundled Jost. Spec: docs/features/terms-page.md -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="LitSnap's terms of use." />
     <title>Terms of Use · LitSnap</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --bg: #fdfcf9;
-        --fg: #1f1d1a;
-        --muted: #5c5750;
-        --link: #1d4ed8;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #17161a;
-          --fg: #e8e6e3;
-          --muted: #a8a29e;
-          --link: #93b4ff;
-        }
-      }
-      body {
-        margin: 0;
-        padding: 2rem 1rem 4rem;
-        background: var(--bg);
-        color: var(--fg);
-        font:
-          1.0625rem/1.6 system-ui,
-          sans-serif;
-      }
-      main {
-        max-width: 40rem;
-        margin: 0 auto;
-      }
-      h1 {
-        margin-bottom: 0.25rem;
-      }
-      h2 {
-        font-size: 1.0625rem;
-        margin: 1.75rem 0 0.25rem;
-      }
-      p {
-        margin: 0;
-      }
-      .updated {
-        color: var(--muted);
-      }
-      a {
-        color: var(--link);
-      }
-    </style>
+    <link rel="stylesheet" href="/src/terms.css" />
   </head>
   <body>
     <main>
