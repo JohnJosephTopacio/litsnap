@@ -133,6 +133,7 @@ function isBlankClick(press: {
 function isOnText(doc: Document, x: number, y: number): boolean;
 ```
 
+- **Holds win over clicks:** a click on blank space while something holds the chrome (an open panel, say) changes nothing, so CHROME-8 isn't undone by CHROME-4. Leaving a hot zone or focus that was never entered changes nothing either.
 - **The visibility machine knows nothing about the DOM.** `ReaderScreen` turns pointer, focus and panel changes into `hold`/`release` events, so the timing rules (CHROME-1, 3, 7, 8) are unit-tested with fake timers, like the selection watcher.
 - **`isOnText`** asks the browser for the caret position under the point (`caretPositionFromPoint`, or `caretRangeFromPoint` where that's all there is), then checks whether the point is inside the box of the character on either side of it. The caret alone isn't enough: on blank space the browser snaps to the nearest text. jsdom has no layout, so this part is only tested in Playwright.
 - **Clicks in the book** arrive through `ReaderView`, which already listens to each book document's pointer events. Points there are in the iframe's own coordinates, which is what `isOnText` wants (no offset). Clicks on foliate's margins around the iframe arrive on our page.
