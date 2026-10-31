@@ -13,6 +13,7 @@ import type { Box, MenuAnchor } from '../lookup/placeMenu';
 import { createSelectionWatcher } from '../lookup/selectionWatcher';
 import type { Layout, Position, Theme } from '../storage/bookStore';
 import { bookCss } from './appearance';
+import { isBlankClick, isOnText } from './blankClick';
 import { openExternalLink } from './externalLinks';
 
 /** A selection the lookup menu can be offered for (selection-menu MENU-1…3). */
@@ -30,6 +31,29 @@ function selectionKey(doc: Document | undefined): string {
   const range = selection.getRangeAt(0);
   return `${String(range.startOffset)}:${String(range.endOffset)}:${selection.toString()}`;
 }
+
+/** Where a press began, to tell a click from a drag, and whether it only clears a selection. */
+interface PressStart {
+  x: number;
+  y: number;
+  hadSelection: boolean;
+}
+
+/** Links and form controls do their own thing when clicked (reader-chrome CHROME-5). */
+const INTERACTIVE = 'a[href], button, input, select, textarea, label, summary';
+
+/** A finished click, as a reader-chrome `Press`. `onText` and `inLink` depend on where it landed. */
+function pressOf(event: MouseEvent, start: PressStart | undefined) {
+  return {
+    button: event.button,
+    modifiers: event.ctrlKey || event.altKey || event.shiftKey || event.metaKey,
+    clickCount: event.detail,
+    movedPx: start ? Math.hypot(event.clientX - start.x, event.clientY - start.y) : 0,
+    hadSelection: start?.hadSelection ?? false,
+  };
+}
+
+const hasSelection = (doc: Document | undefined) => doc?.getSelection()?.isCollapsed === false;
 
 /** Rounding and borders can put a line a pixel outside the reader area. */
 const EDGE_TOLERANCE = 1;
@@ -122,6 +146,8 @@ interface ReaderViewProps {
   onDropFile: (file: File) => void;
   /** A selection to offer lookups for, or `undefined` when the menu should go (MENU-1…3, 10). */
   onSelection: (selection: BookSelection | undefined) => void;
+  /** A click on blank space in the book or its margins (reader-chrome CHROME-4/5). */
+  onBlankClick: () => void;
   onError: (error: unknown) => void;
 }
 
@@ -159,6 +185,8 @@ export function ReaderView({
   const queued = useRef(0);
   /** The book document the reader last selected in or clicked. */
   const activeDoc = useRef<Document>(undefined);
+  /** A press on foliate's margins, outside the book's iframe. */
+  const marginPress = useRef<PressStart>(undefined);
 
   // Only touches refs, so it's the same function on every render.
   const call = useCallback((action: (v: View) => Promise<unknown>) => {
@@ -206,6 +234,7 @@ export function ReaderView({
   const onError = useEffectEvent(handlers.onError);
   const onDropFile = useEffectEvent(handlers.onDropFile);
   const onSelection = useEffectEvent(handlers.onSelection);
+  const onBlankClick = useEffectEvent(handlers.onBlankClick);
   const startAt = useEffectEvent(() => initialPosition);
   const latestAppearance = useEffectEvent(() => appearance);
 
@@ -274,6 +303,22 @@ export function ReaderView({
         // Pressing on selected text drags it instead of selecting, and cancels the pointer: without
         // this the watcher would think the button is still down.
         doc.addEventListener('pointercancel', released);
+        // CHROME-4/5: a click on blank space shows or hides the chrome; text stays for selecting.
+        let start: PressStart | undefined;
+        doc.addEventListener('pointerdown', (pointerEvent) => {
+          const { clientX: x, clientY: y } = pointerEvent;
+          start = { x, y, hadSelection: hasSelection(doc) };
+        });
+        doc.addEventListener('click', (clickEvent) => {
+          // Elements from the book's realm: closest() works across realms, instanceof wouldn't.
+          const target = clickEvent.target as Element | null;
+          const press = {
+            ...pressOf(clickEvent, start),
+            onText: isOnText(doc, clickEvent.clientX, clickEvent.clientY),
+            inLink: Boolean(target?.closest(INTERACTIVE)),
+          };
+          if (isBlankClick(press)) onBlankClick();
+        });
         doc.addEventListener('selectionchange', () => {
           activeDoc.current = doc;
           watcher.selectionChange();
@@ -341,5 +386,20 @@ export function ReaderView({
     if (view.current) applyAppearance(view.current, { fontSize, theme, layout });
   }, [fontSize, theme, layout]);
 
-  return <div ref={container} className="reader-view" />;
+  // Clicks inside the book's iframe never reach our page; these are on foliate's margins around it,
+  // which are blank space too (reader-chrome.md, Terms).
+  return (
+    <div
+      ref={container}
+      className="reader-view"
+      onPointerDown={(event) => {
+        const { clientX: x, clientY: y } = event;
+        marginPress.current = { x, y, hadSelection: hasSelection(activeDoc.current) };
+      }}
+      onClick={(event) => {
+        const press = { ...pressOf(event.nativeEvent, marginPress.current), onText: false };
+        if (isBlankClick({ ...press, inLink: false })) handlers.onBlankClick();
+      }}
+    />
+  );
 }
