@@ -1,8 +1,5 @@
 // What counts as a click on blank space in the book. Spec: docs/features/reader-chrome.md
 // (CHROME-4, CHROME-5).
-//
-// STUB: the tests in blankClick.test.ts are `it.fails` until the implementation PR.
-/* eslint-disable @typescript-eslint/no-unused-vars -- stub parameters; the implementation PR removes this */
 
 /** A finished press in the book area, as ReaderView saw it. */
 export interface Press {
@@ -18,7 +15,7 @@ export interface Press {
   hadSelection: boolean;
   /** The point is inside a character's box (`isOnText`). */
   onText: boolean;
-  /** The point is inside a link. */
+  /** The point is inside a link or a form control: following or using it is the click's job. */
   inLink: boolean;
 }
 
@@ -27,13 +24,36 @@ export const DRAG_PX = 5;
 
 /** CHROME-4/5: whether a finished press counts as a click on blank space. */
 export function isBlankClick(press: Press): boolean {
-  throw new Error('Not implemented yet (reader-chrome.md)');
+  return (
+    press.button === 0 &&
+    !press.modifiers &&
+    press.clickCount <= 1 &&
+    press.movedPx < DRAG_PX &&
+    !press.hadSelection &&
+    !press.onText &&
+    !press.inLink
+  );
 }
 
 /**
- * Whether a point (in the document's own coordinates) is inside a character's box. Tested in
- * Playwright only: jsdom has no layout. Implemented with the wiring (reader-chrome.md, Design).
+ * Whether a point (in the document's own coordinates) is inside a character's box. The caret
+ * alone isn't enough: on blank space the browser snaps to the nearest text, so the character on
+ * either side of it must actually be under the point. Tested in Playwright: jsdom has no layout.
  */
 export function isOnText(doc: Document, x: number, y: number): boolean {
-  throw new Error('Not implemented yet (reader-chrome.md)');
+  // The standard API: Chrome 128+, Firefox, Safari 18.4+.
+  const caret = doc.caretPositionFromPoint(x, y);
+  // nodeType, never instanceof: the book's nodes belong to its iframe's realm (CLAUDE.md).
+  if (caret?.offsetNode.nodeType !== Node.TEXT_NODE) return false;
+  const length = caret.offsetNode.textContent?.length ?? 0;
+  const range = doc.createRange();
+  for (const start of [caret.offset - 1, caret.offset]) {
+    if (start < 0 || start >= length) continue;
+    range.setStart(caret.offsetNode, start);
+    range.setEnd(caret.offsetNode, start + 1);
+    for (const box of range.getClientRects()) {
+      if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) return true;
+    }
+  }
+  return false;
 }

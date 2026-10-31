@@ -18,7 +18,7 @@ const click = (overrides: Partial<Press> = {}): Press => ({
 });
 
 describe('isBlankClick', () => {
-  it.fails('CHROME-4: a still, primary click on blank space counts', () => {
+  it('CHROME-4: a still, primary click on blank space counts', () => {
     expect(isBlankClick(click())).toBe(true);
   });
 
@@ -26,16 +26,16 @@ describe('isBlankClick', () => {
     expect(DRAG_PX).toBe(5);
   });
 
-  it.fails('CHROME-4: a little movement is still a click; 5 px is a drag', () => {
+  it('CHROME-4: a little movement is still a click; 5 px is a drag', () => {
     expect(isBlankClick(click({ movedPx: 4.9 }))).toBe(true);
     expect(isBlankClick(click({ movedPx: 5 }))).toBe(false);
   });
 
-  it.fails('CHROME-10: a tap counts like a click (touch reports button 0 and one click)', () => {
+  it('CHROME-10: a tap counts like a click (touch reports button 0 and one click)', () => {
     expect(isBlankClick(click({ button: 0, clickCount: 1 }))).toBe(true);
   });
 
-  it.fails.each([
+  it.each([
     ['on text: text stays free for selecting', { onText: true }],
     ['on a link: it is followed', { inLink: true }],
     ['while text was selected: it only clears it', { hadSelection: true }],
