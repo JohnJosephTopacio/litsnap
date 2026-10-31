@@ -1,6 +1,6 @@
 # Feature: Reader chrome
 
-> Milestone: M4.5 · Status: planned · Product spec: [spec.md §6](../spec.md#6-reader-features-v1) · Looks: [visual-design.md](visual-design.md) · Mockup: [LitSnap UI overhaul mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W), board "Reader — auto-hide (press Play)" (private to the owner)
+> Milestone: M4.5 · Status: done · Product spec: [spec.md §6](../spec.md#6-reader-features-v1) · Looks: [visual-design.md](visual-design.md) · Mockup: [LitSnap UI overhaul mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W), board "Reader — auto-hide (press Play)" (private to the owner)
 
 ## Goal
 
@@ -139,6 +139,11 @@ function isOnText(doc: Document, x: number, y: number): boolean;
 - **Clicks in the book** arrive through `ReaderView`, which already listens to each book document's pointer events. Points there are in the iframe's own coordinates, which is what `isOnText` wants (no offset). Clicks on foliate's margins around the iframe arrive on our page.
 - **Nodes from the book are another realm's:** `isOnText` and the link check use `nodeType` and `closest('a[href]')`, never `instanceof` (CLAUDE.md).
 - **Hidden chrome stays focusable,** so `Tab` can reveal it (CHROME-7). That's why hiding is opacity only.
+- **Keyboard focus, not `:focus-visible`** (learned implementing it). Only focus that follows a key press holds the chrome: `useChrome` remembers whether the last input was a key or a pointer, including keys the book's iframe forwards. `:focus-visible` can't be used: a `Tab` pressed inside the iframe that lands on our Next arrow doesn't count as keyboard focus in our page, and a mouse click on a gutter focuses its arrow, which mustn't show the chrome (CHROME-6).
+- **`Esc` from a panel keeps the chrome shown:** the panel closes and focus goes back to its button (RD-14), which is keyboard focus in the chrome (CHROME-7). It hides once focus leaves, as for any keyboard user.
+- **foliate's margins are real:** the iframe sits about 48 px inside `<foliate-view>` at the top and bottom (38 px at the sides). Clicks there reach our page, not the book, so `ReaderView` listens on its container too.
+- **The saved mode is sent when the reader mounts,** so the machine ignores a switch to the mode it's already in: otherwise the countdown would start before the book has opened (CHROME-1).
+- **`caretPositionFromPoint` only** (Chrome 128+, Firefox, Safari 18.4+). WebKit's older `caretRangeFromPoint` is deprecated, and a fallback our Chromium tests could never run isn't worth keeping.
 
 ## Out of scope
 
