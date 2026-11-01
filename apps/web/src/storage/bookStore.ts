@@ -6,6 +6,8 @@ export type Theme = 'light' | 'dark';
 export type Layout = 'paginated' | 'scrolled';
 /** The lookup modal's width: Small, Medium, Large (lookup-modal MODAL-12). */
 export type LookupSize = 's' | 'm' | 'l';
+/** Whether the reader's chrome hides itself (reader-chrome CHROME-11). */
+export type Controls = 'auto-hide' | 'always';
 
 export interface Settings {
   /** Percent, 80–200 in steps of 10. */
@@ -14,6 +16,7 @@ export interface Settings {
   theme: Theme | undefined;
   layout: Layout;
   lookupSize: LookupSize;
+  controls: Controls;
 }
 
 export interface Position {
@@ -91,7 +94,8 @@ export class StorageFullError extends Error {
 interface LitsnapDB extends DBSchema {
   books: { key: string; value: StoredBook };
   progress: { key: string; value: StoredProgress };
-  // Key/value pairs: `fontSize`, `theme`, `layout`, `lookupSize`, `currentBookId`, `leftAtStart`.
+  // Key/value pairs: `fontSize`, `theme`, `layout`, `lookupSize`, `controls`, `currentBookId`,
+  // `leftAtStart`.
   settings: { key: string; value: unknown };
 }
 
@@ -100,6 +104,7 @@ const DEFAULT_SETTINGS: Settings = {
   theme: undefined,
   layout: 'paginated',
   lookupSize: 'm',
+  controls: 'auto-hide',
 };
 
 /** 80–200, rounded to the nearest 10. */
@@ -144,11 +149,12 @@ export async function openBookStore(options: BookStoreOptions = {}): Promise<Boo
   }
 
   async function getSettings(): Promise<Settings> {
-    const [fontSize, theme, layout, lookupSize] = await Promise.all([
+    const [fontSize, theme, layout, lookupSize, controls] = await Promise.all([
       db.get('settings', 'fontSize'),
       db.get('settings', 'theme'),
       db.get('settings', 'layout'),
       db.get('settings', 'lookupSize'),
+      db.get('settings', 'controls'),
     ]);
     // Validate what we read back: stored data outlives the code that wrote it.
     return {
@@ -159,6 +165,7 @@ export async function openBookStore(options: BookStoreOptions = {}): Promise<Boo
         lookupSize === 's' || lookupSize === 'm' || lookupSize === 'l'
           ? lookupSize
           : DEFAULT_SETTINGS.lookupSize,
+      controls: controls === 'always' ? controls : DEFAULT_SETTINGS.controls,
     };
   }
 
@@ -236,6 +243,7 @@ export async function openBookStore(options: BookStoreOptions = {}): Promise<Boo
       if (patch.lookupSize !== undefined) {
         writes.push(tx.store.put(patch.lookupSize, 'lookupSize'));
       }
+      if (patch.controls !== undefined) writes.push(tx.store.put(patch.controls, 'controls'));
       await Promise.all([...writes, tx.done]);
       return getSettings();
     },

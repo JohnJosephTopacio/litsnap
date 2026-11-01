@@ -2,7 +2,7 @@
 // Node, not jsdom: fake-indexeddb clones values with Node's structuredClone, which turns jsdom's
 // Blob into a plain object. Node's own Blob round-trips correctly, as real browsers' do.
 //
-// Acceptance criteria STO-1…8 and STO-11…16 from docs/features/book-storage.md.
+// Acceptance criteria STO-1…8 and STO-11…17 from docs/features/book-storage.md.
 import 'fake-indexeddb/auto';
 import { openDB } from 'idb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -282,6 +282,7 @@ describe('openBookStore', () => {
         layout: 'paginated',
         theme: undefined,
         lookupSize: 'm',
+        controls: 'auto-hide',
       });
     });
   });
@@ -317,6 +318,7 @@ describe('openBookStore', () => {
         theme: 'dark',
         layout: 'scrolled',
         lookupSize: 'm',
+        controls: 'auto-hide',
       });
     });
 
@@ -354,6 +356,39 @@ describe('openBookStore', () => {
 
       const second = await openBookStore({ name, now, storage: null });
       expect((await second.getSettings()).lookupSize).toBe('l');
+    });
+  });
+
+  describe('STO-17: controls (reader-chrome CHROME-11)', () => {
+    it("is 'auto-hide' by default, including for settings saved before it existed", async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      const first = await openBookStore({ name, now, storage: null });
+      await first.updateSettings({ fontSize: 120 });
+      first.close();
+
+      const second = await openBookStore({ name, now, storage: null });
+      expect((await second.getSettings()).controls).toBe('auto-hide');
+    });
+
+    it("reads anything other than 'auto-hide' or 'always' as 'auto-hide'", async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      (await openBookStore({ name, now, storage: null })).close();
+      const raw = await openDB(name);
+      await raw.put('settings', 'sometimes', 'controls');
+      raw.close();
+
+      const store = await openBookStore({ name, now, storage: null });
+      expect((await store.getSettings()).controls).toBe('auto-hide');
+    });
+
+    it('persists a choice across sessions', async () => {
+      const name = `test-${crypto.randomUUID()}`;
+      const first = await openBookStore({ name, now, storage: null });
+      expect((await first.updateSettings({ controls: 'always' })).controls).toBe('always');
+      first.close();
+
+      const second = await openBookStore({ name, now, storage: null });
+      expect((await second.getSettings()).controls).toBe('always');
     });
   });
 });

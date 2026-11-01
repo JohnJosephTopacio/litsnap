@@ -10,11 +10,11 @@ Keep books, reading progress and reader settings in the browser (IndexedDB, via 
 
 Database `litsnap`, schema version **1**:
 
-| Store      | Key      | Value                                                                                                                                                                                                                                   |
-| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `books`    | `id`     | `{ id, title, author, fileName, size, blob, addedAt, lastOpenedAt }`                                                                                                                                                                    |
-| `progress` | `bookId` | `{ bookId, cfi, fraction, updatedAt }`                                                                                                                                                                                                  |
-| `settings` | key      | `fontSize` (number, %), `theme` (`'light' \| 'dark'`, unset = follow OS), `layout` (`'paginated' \| 'scrolled'`), `lookupSize` (`'s' \| 'm' \| 'l'`, [lookup-modal](lookup-modal.md) MODAL-12), `currentBookId`, `leftAtStart` (STO-16) |
+| Store      | Key      | Value                                                                                                                                                                                                                    |
+| ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `books`    | `id`     | `{ id, title, author, fileName, size, blob, addedAt, lastOpenedAt }`                                                                                                                                                     |
+| `progress` | `bookId` | `{ bookId, cfi, fraction, updatedAt }`                                                                                                                                                                                   |
+| `settings` | key      | `fontSize` (number, %), `theme` (`'light' \| 'dark'`, unset = follow OS), `layout` (`'paginated' \| 'scrolled'`), `lookupSize` (`'s' \| 'm' \| 'l'`, [lookup-modal](lookup-modal.md) MODAL-12), `controls` (`'auto-hide' | 'always'`, [reader-chrome](reader-chrome.md) CHROME-11, STO-17), `currentBookId`, `leftAtStart` (STO-16) |
 
 - `id` is the **SHA-256 of the file bytes** (hex, via Web Crypto). The same file always gets the same id, even if it is renamed.
 - `title` and `author` come from the book's metadata (foliate), and fall back to `fileName` and `''`.
@@ -110,6 +110,11 @@ Then `lookupSize` is `'m'`. After it is set to `'l'`, it reads `'l'`, including 
 Given nothing has been stored
 When `getLeftAtStart()` is read
 Then it is `false`, so installs from before M4.5 keep going straight into the book (RD-8). After `setLeftAtStart(true)` it reads `true`, including in a fresh session, and `setLeftAtStart(false)` puts it back. The current book is untouched either way.
+
+**STO-17: controls** (added with [reader-chrome](reader-chrome.md) CHROME-11)
+Given nothing has been stored (including settings saved before this one existed), or a value other than `'auto-hide'` or `'always'`
+When settings are read
+Then `controls` is `'auto-hide'`. After it is set to `'always'`, it reads `'always'`, including in a fresh session.
 
 ## Notes for implementation
 

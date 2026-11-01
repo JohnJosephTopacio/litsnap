@@ -36,7 +36,7 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-1: shown when a book opens, then hidden', () => {
-    it.fails('is shown from the start, and hides when the countdown runs out', () => {
+    it('is shown from the start, and hides when the countdown runs out', () => {
       const chrome = opened();
       expect(chrome.visible).toBe(true);
 
@@ -49,7 +49,7 @@ describe('createChromeVisibility', () => {
       expect(onChange).toHaveBeenCalledExactlyOnceWith(false);
     });
 
-    it.fails('does not count down before the book has opened', () => {
+    it('does not count down before the book has opened', () => {
       const chrome = createChromeVisibility(onChange);
 
       vi.advanceTimersByTime(CHROME_DELAY_MS * 3);
@@ -58,7 +58,7 @@ describe('createChromeVisibility', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
-    it.fails('stays shown when the countdown runs out while something holds it', () => {
+    it('stays shown when the countdown runs out while something holds it', () => {
       const chrome = opened();
       chrome.send({ type: 'hold', reason: 'hover' });
 
@@ -67,7 +67,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(true);
     });
 
-    it.fails('starts the countdown over when another book opens', () => {
+    it('starts the countdown over when another book opens', () => {
       const chrome = opened();
       vi.advanceTimersByTime(CHROME_DELAY_MS - 1000);
 
@@ -79,7 +79,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(false);
     });
 
-    it.fails('takes the countdown it is given', () => {
+    it('takes the countdown it is given', () => {
       const chrome = createChromeVisibility(onChange, 500);
       chrome.send({ type: 'opened' });
 
@@ -90,27 +90,24 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-3: hovering a hot zone', () => {
-    it.fails(
-      'shows hidden chrome, keeps it while hovered, and counts down again on leaving',
-      () => {
-        const chrome = hidden();
+    it('shows hidden chrome, keeps it while hovered, and counts down again on leaving', () => {
+      const chrome = hidden();
 
-        chrome.send({ type: 'hold', reason: 'hover' });
-        expect(chrome.visible).toBe(true);
-        expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
+      chrome.send({ type: 'hold', reason: 'hover' });
+      expect(chrome.visible).toBe(true);
+      expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
 
-        vi.advanceTimersByTime(CHROME_DELAY_MS * 3);
-        expect(chrome.visible).toBe(true);
+      vi.advanceTimersByTime(CHROME_DELAY_MS * 3);
+      expect(chrome.visible).toBe(true);
 
-        chrome.send({ type: 'release', reason: 'hover' });
-        vi.advanceTimersByTime(CHROME_DELAY_MS - 1);
-        expect(chrome.visible).toBe(true);
-        vi.advanceTimersByTime(1);
-        expect(chrome.visible).toBe(false);
-      },
-    );
+      chrome.send({ type: 'release', reason: 'hover' });
+      vi.advanceTimersByTime(CHROME_DELAY_MS - 1);
+      expect(chrome.visible).toBe(true);
+      vi.advanceTimersByTime(1);
+      expect(chrome.visible).toBe(false);
+    });
 
-    it.fails('cancels a running countdown, which starts from the beginning on leaving', () => {
+    it('cancels a running countdown, which starts from the beginning on leaving', () => {
       const chrome = opened();
       vi.advanceTimersByTime(CHROME_DELAY_MS - 100);
 
@@ -124,7 +121,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(false);
     });
 
-    it.fails('ignores leaving a hot zone it never entered', () => {
+    it('ignores leaving a hot zone it never entered', () => {
       const chrome = opened();
       vi.advanceTimersByTime(CHROME_DELAY_MS - 100);
 
@@ -137,7 +134,7 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-4: clicking blank space toggles it', () => {
-    it.fails('shows hidden chrome, which counts down again', () => {
+    it('shows hidden chrome, which counts down again', () => {
       const chrome = hidden();
 
       chrome.send({ type: 'blankClick' });
@@ -148,7 +145,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(false);
     });
 
-    it.fails('hides shown chrome at once', () => {
+    it('hides shown chrome at once', () => {
       const chrome = opened();
 
       chrome.send({ type: 'blankClick' });
@@ -157,7 +154,7 @@ describe('createChromeVisibility', () => {
       expect(onChange).toHaveBeenCalledExactlyOnceWith(false);
     });
 
-    it.fails('leaves held chrome alone (an open panel keeps it, CHROME-8)', () => {
+    it('leaves held chrome alone (an open panel keeps it, CHROME-8)', () => {
       const chrome = opened();
       chrome.send({ type: 'hold', reason: 'panel' });
 
@@ -167,7 +164,7 @@ describe('createChromeVisibility', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
-    it.fails("doesn't let an old countdown hide chrome a click just showed again", () => {
+    it("doesn't let an old countdown hide chrome a click just showed again", () => {
       const chrome = opened();
       vi.advanceTimersByTime(CHROME_DELAY_MS - 100);
       chrome.send({ type: 'blankClick' }); // hides at once
@@ -181,7 +178,7 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-7: the keyboard reaches it', () => {
-    it.fails('shows on focus, holds while focused, and counts down when focus leaves', () => {
+    it('shows on focus, holds while focused, and counts down when focus leaves', () => {
       const chrome = hidden();
 
       chrome.send({ type: 'hold', reason: 'focus' });
@@ -196,7 +193,7 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-8: panels hold it', () => {
-    it.fails('stays shown while a panel is open, and counts down when it closes', () => {
+    it('stays shown while a panel is open, and counts down when it closes', () => {
       const chrome = opened();
       chrome.send({ type: 'hold', reason: 'panel' });
       vi.advanceTimersByTime(CHROME_DELAY_MS * 3);
@@ -207,7 +204,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(false);
     });
 
-    it.fails('stays held until the last hold is released', () => {
+    it('stays held until the last hold is released', () => {
       const chrome = opened();
       chrome.send({ type: 'hold', reason: 'panel' });
       chrome.send({ type: 'hold', reason: 'hover' });
@@ -221,7 +218,7 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(false);
     });
 
-    it.fails('reports only real changes: holding shown chrome calls nothing', () => {
+    it('reports only real changes: holding shown chrome calls nothing', () => {
       const chrome = opened();
 
       chrome.send({ type: 'hold', reason: 'panel' });
@@ -232,7 +229,7 @@ describe('createChromeVisibility', () => {
   });
 
   describe('CHROME-11: Always shown', () => {
-    it.fails('shows hidden chrome and never hides it, whatever happens', () => {
+    it('shows hidden chrome and never hides it, whatever happens', () => {
       const chrome = hidden();
 
       chrome.send({ type: 'mode', mode: 'always' });
@@ -248,7 +245,7 @@ describe('createChromeVisibility', () => {
       expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
     });
 
-    it.fails('stops a running countdown', () => {
+    it('stops a running countdown', () => {
       const chrome = opened();
 
       chrome.send({ type: 'mode', mode: 'always' });
@@ -257,7 +254,17 @@ describe('createChromeVisibility', () => {
       expect(chrome.visible).toBe(true);
     });
 
-    it.fails('counts down again when switched back to Auto-hide', () => {
+    it('changes nothing when told the mode it is already in (no countdown before opening)', () => {
+      const chrome = createChromeVisibility(onChange);
+
+      chrome.send({ type: 'mode', mode: 'auto-hide' });
+      vi.advanceTimersByTime(CHROME_DELAY_MS * 3);
+
+      expect(chrome.visible).toBe(true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('counts down again when switched back to Auto-hide', () => {
       const chrome = opened();
       chrome.send({ type: 'mode', mode: 'always' });
 
@@ -268,7 +275,7 @@ describe('createChromeVisibility', () => {
     });
   });
 
-  it.fails('does nothing after dispose, and leaves no timer behind', () => {
+  it('does nothing after dispose, and leaves no timer behind', () => {
     const chrome = opened();
 
     chrome.dispose();

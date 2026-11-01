@@ -137,7 +137,10 @@ export const colouredEpub = () =>
     }),
   );
 
-/** RD-19: a footnote reference in chapter 1 pointing at an endnote in a second section. */
+/**
+ * RD-19: a footnote reference in chapter 1 pointing at an endnote in a second section.
+ * reader-chrome CHROME-5: and an image that links there too (no text under the click).
+ */
 export const footnoteEpub = () =>
   epub(
     'footnote.epub',
@@ -150,7 +153,8 @@ export const footnoteEpub = () =>
       files: {
         'OEBPS/chapter1.xhtml': chapter(
           '',
-          '<p>A hipped roof<a id="ref-1" href="notes.xhtml#note-1">1</a> slopes on all sides.</p>',
+          `<p>A hipped roof<a id="ref-1" href="notes.xhtml#note-1">1</a> slopes on all sides.</p>
+<p><a id="pic-ref" href="notes.xhtml#note-1"><img alt="" width="60" height="60" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"/></a></p>`,
         ),
         'OEBPS/notes.xhtml': chapter(
           '',

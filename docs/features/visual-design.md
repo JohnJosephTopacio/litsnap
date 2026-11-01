@@ -1,6 +1,6 @@
 # Feature: Visual design
 
-> Milestone: M4.5 · Status: planned · Decision: [0007 Jost](../decisions/0007-jost-typeface.md) · Mockup: [LitSnap UI overhaul mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W) (private to the owner)
+> Milestone: M4.5 · Status: done · Decision: [0007 Jost](../decisions/0007-jost-typeface.md) · Mockup: [LitSnap UI overhaul mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W) (private to the owner)
 
 ## Goal
 

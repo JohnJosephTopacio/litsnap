@@ -1,5 +1,6 @@
 // The reader: top bar, TOC and settings panels, book, page arrows and bottom bar.
-// Spec: docs/features/epub-reader.md; the selection menu: docs/features/selection-menu.md.
+// Spec: docs/features/epub-reader.md; the selection menu: docs/features/selection-menu.md; when the
+// chrome hides: docs/features/reader-chrome.md.
 import { displayTerm, normalise, type LookupKind } from '@litsnap/shared';
 import type { BookMetadata, RelocateDetail, TocItem } from 'foliate-js/view.js';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -13,6 +14,7 @@ import { createProgressSaver } from '../storage/progressSaver';
 import { ReaderView, type BookSelection, type OpenedBook, type ReaderControls } from './ReaderView';
 import { SettingsPanel } from './SettingsPanel';
 import { TocPanel } from './TocPanel';
+import { useChrome } from './useChrome';
 
 export interface OpenBook {
   /** SHA-256 of the file (book-storage STO-1); progress is saved under it. */
@@ -99,6 +101,8 @@ export function ReaderScreen(props: ReaderScreenProps) {
   const [selection, setSelection] = useState<BookSelection>();
   const [lookup, setLookup] = useState<LookupRequest>();
   const menu = useRef<SelectionMenuHandle>(null);
+  const chrome = useChrome(settings.controls, panel !== undefined);
+  const sendChrome = chrome.send; // stable, so callbacks can depend on it
 
   // Debounced progress writes (STO-9), flushed when the page is hidden or the book changes (STO-10).
   const saver = useMemo(
@@ -132,9 +136,10 @@ export function ReaderScreen(props: ReaderScreenProps) {
     (file: File, opened: OpenedBook) => {
       setToc(opened.toc);
       setFixedLayout(opened.fixedLayout);
+      sendChrome({ type: 'opened' }); // CHROME-1
       onOpen(file, opened.metadata);
     },
-    [onOpen],
+    [onOpen, sendChrome],
   );
 
   const togglePanel = (which: Panel) => {
@@ -226,6 +231,8 @@ export function ReaderScreen(props: ReaderScreenProps) {
   return (
     <div
       className="reader"
+      // CHROME-12: styles.css fades the chrome on this.
+      data-chrome={chrome.visible ? 'shown' : 'hidden'}
       // RD-26: dropping a book anywhere on the reader opens it (the book's own iframe forwards its
       // drops via ReaderView).
       onDragOver={(event) => {
@@ -239,7 +246,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
     >
       {/* The bars are drawn over the reader's reserved margins, never beside the book
           (visual-design.md, Layout). */}
-      <header className="top-bar">
+      <header className="top-bar" data-chrome-part="" {...chrome.hotZone}>
         <button
           ref={tocButton}
           type="button"
@@ -293,6 +300,7 @@ export function ReaderScreen(props: ReaderScreenProps) {
         <button
           type="button"
           className="page-arrow"
+          data-chrome-part=""
           aria-label="Previous page"
           onClick={() => controls.current?.goLeft()}
         >
@@ -305,21 +313,33 @@ export function ReaderScreen(props: ReaderScreenProps) {
           appearance={{ fontSize: settings.fontSize, theme, layout: settings.layout }}
           onOpen={onBookOpen}
           onRelocate={onRelocate}
-          onKeyDown={onKeyDown}
+          onKeyDown={(event) => {
+            chrome.noteKeyboard();
+            onKeyDown(event);
+          }}
           onDropFile={onDropFile}
           onSelection={setSelection}
+          onBlankClick={() => {
+            chrome.send({ type: 'blankClick' });
+          }}
           onError={props.onError}
         />
         <button
           type="button"
           className="page-arrow"
+          data-chrome-part=""
           aria-label="Next page"
           onClick={() => controls.current?.goRight()}
         >
           <Chevron path="M9 5l7 7-7 7" />
         </button>
       </div>
-      <footer className="bottom-bar" aria-label="Reading progress">
+      <footer
+        className="bottom-bar"
+        aria-label="Reading progress"
+        data-chrome-part=""
+        {...chrome.hotZone}
+      >
         <span className="chapter">{location?.tocItem?.label}</span>
         {location && (
           <div className="progress">

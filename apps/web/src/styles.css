@@ -333,6 +333,40 @@ body {
   opacity: 1;
 }
 
+/* Hidden chrome (reader-chrome.md): transparent only, so it stays focusable and in the
+   accessibility tree (CHROME-7), and the hot zones still notice the pointer (CHROME-3). */
+.top-bar,
+.bottom-bar,
+.page-arrow {
+  transition: opacity 200ms ease; /* CHROME-12 */
+}
+
+.reader[data-chrome='hidden'] .top-bar,
+.reader[data-chrome='hidden'] .bottom-bar,
+.reader[data-chrome='hidden'] .page-arrow {
+  opacity: 0;
+}
+
+/* CHROME-6: a hovered gutter shows its own arrow. Only where there's a real hover: on a touch
+   screen a tapped arrow would otherwise stay "hovered" (CHROME-10). */
+@media (hover: hover) {
+  .reader[data-chrome='hidden'] .page-arrow:hover {
+    opacity: 1;
+  }
+}
+
+.reader[data-chrome='hidden'] .page-arrow:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-bar,
+  .bottom-bar,
+  .page-arrow {
+    transition: none;
+  }
+}
+
 .pill-option:disabled {
   opacity: 0.4;
   cursor: default;
