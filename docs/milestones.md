@@ -61,22 +61,17 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 - Optional follow-ups: give the weekly live check the token as a GitHub secret (it's anonymous, so Wikimedia throttles it now and then); crop grid thumbnails to a uniform box (tall images make uneven rows).
 - Follow-ups, not started: a flaky local run of `apps/web/config/eslint-no-html-injection.test.ts` under load (#34 "Look closely"); `Restrictions` (trademarks, personality rights) on Commons files isn't used (image-providers "Notes").
 
-## M4.5 — UI overhaul
+## M4.5 — UI overhaul ✅
 
-> Planned 2026-10-28 (grilling, then the owner approved a [mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W), private to the owner). Specs: [visual-design](features/visual-design.md), [reader-chrome](features/reader-chrome.md); spec changes to [image-grid](features/image-grid.md) (GRID-3, GRID-10). Decision: [0007](decisions/0007-jost-typeface.md) (Jost). Inserted before M5, so nothing is renumbered.
+> Done 2026-11-01 (#47, #48, #51–#54). Specs: [visual-design](features/visual-design.md), [reader-chrome](features/reader-chrome.md); the start screen in [epub-reader](features/epub-reader.md) (RD-30…33); [book-storage](features/book-storage.md) STO-16, STO-17; [image-grid](features/image-grid.md) GRID-3, GRID-10. Decision: [0007](decisions/0007-jost-typeface.md) (Jost). Planned in a grilling and approved on a [mockup](https://claude.ai/artifact/3Uu93Yw2vUjd9jUQqyW98W) (private to the owner); inserted before M5, so nothing was renumbered.
 
-- **A minimalist look for every surface**, from the owner's inspiration image: a warm paper palette with no accent (`#F6F4EE` / `#111111`, and a warm dark), Jost for our interface, small tracked uppercase labels, hairlines, pill controls, a thin progress gauge. Books keep their fonts; their links become monochrome and underlined.
-- **The reader's chrome hides while reading:** 3 s after a book opens, and comes back when hovering the top or bottom margin, clicking blank space (not text, so double-click still selects), or tabbing to it. Invisible gutters keep turning pages. The book never moves when the chrome toggles. Settings → Controls can keep it shown.
-- **Contrast is a criterion:** `#777777` from the palette fails AA for small text on both backgrounds, so it only draws lines (VIS-2).
-- **PR plan (6, was 5):**
-  1. `docs:` this milestone, both specs, decision 0007.
-  2. Tokens, Jost (licence exception), reserved margins, the open screen and the top and bottom bars. Visual, test-after, plus tests for VIS-1…4 and that the book doesn't move.
-  3. _(added 2026-10-28, owner request)_ The start screen: **Home** replaces the reader's Open button, **Continue reading**, and a Light · Dark toggle (epub-reader RD-30…33, book-storage STO-16).
-  4. Panels, selection menu, lookup modal, square image grid (GRID-10), viewer, Terms page.
-  5. Failing tests (`it.fails`) for the chrome's visibility machine and `isBlankClick`.
-  6. Implementation: those tests flip to `it`, plus Playwright for the rest of reader-chrome.
-- Each PR carries light and dark screenshots. No pixel-snapshot tests (font rendering differs between this machine and CI).
-- M6's "accessibility and visual polish pass" stays, as a final audit after PDF.
+- **A minimalist look for every surface**, from the owner's inspiration image: a warm paper palette with no accent (`#F6F4EE` / `#111111`, and a warm dark), Jost for our interface (self-hosted, one reviewed OFL exception), small tracked uppercase labels, hairlines, pill controls, a thin progress gauge. Books keep their fonts; their links are monochrome and underlined. `#777777` fails AA for small text on both papers, so it only draws lines (VIS-2).
+- **The start screen** (added at the owner's request mid-milestone): the reader's Open became **Home**, the start screen offers **Continue reading**, and has a Light · Dark toggle. A reload comes back to wherever you left (RD-31).
+- **The reader's chrome hides while reading:** 3 s after a book opens. Hovering the top or bottom strip, clicking blank space (not text, so double-click still selects), `Tab` or an open panel bring it back. Invisible gutters keep turning pages, and the book never moves. Settings → Controls can keep it shown.
+- **Square thumbnails** in the image grid (an M4 follow-up), and the Terms page moved into the Vite build (no script, TERMS-3) so it shares the fonts and colours.
+- **The plan grew from 5 to 6 PRs** with the start screen (#51). Along the way: closing a book before its first page crashed the app (foliate throws; fixed in #51), and a retrying Playwright check that outlasted the 3 s countdown hid three mutations (fixed in #54; CLAUDE.md).
+- Screenshots of every PR, light and dark, are on a [private page](https://claude.ai/artifact/V9bdVn7GwaZZzN9eXAsn1T) (`gh` can't attach images to a PR). No pixel-snapshot tests: fonts render differently here and in CI.
+- Follow-ups, not started: the Terms page follows the OS theme, not the saved one (it has no script); an own selection highlight is still the M2 follow-up (the browser's blue shows under the menu); `Esc` from a panel keeps the chrome shown until focus leaves it (reader-chrome design notes), if that proves odd in use. M6's accessibility and polish pass stays, as a final audit after PDF.
 
 ## M5 — PDF
 
@@ -87,6 +82,7 @@ Each milestone ends with something working and deployed. See [spec.md](spec.md) 
 > - **Lookups:** the selection watcher (`createSelectionWatcher`) gets its events from foliate's documents today. pdf.js's text layer is a normal DOM in our own page, not an iframe, so the "another realm" rules (CLAUDE.md) don't apply there. Its coordinates don't need the iframe offset either.
 > - **Licence:** pdf.js is Apache-2.0, on the allow-list (TERMS-6).
 > - **Fixtures:** text and scanned PDFs, generated in `e2e/fixtures.ts`, like the EPUBs (spec §10).
+> - **Since M4.5:** PDF screens use the tokens in `src/theme.ts` (VIS-1), and the reader's chrome hides for PDFs too ([reader-chrome](features/reader-chrome.md)). Blank-space clicks come from `ReaderView`'s book documents today: pdf.js's text layer is in our own page, so `isOnText` can run on `document` directly, and the chrome's reserved margins must hold the PDF canvas still (CHROME-2). "Inverted dark mode" should end on the paper palette, not pure black.
 
 - pdf.js with text layer, zoom, inverted dark mode.
 - Scanned-PDF detection and message.
