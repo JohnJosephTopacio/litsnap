@@ -8,6 +8,11 @@ updates:
       # One PR for routine minor/patch bumps instead of dozens.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Node's types follow the Node we run (.nvmrc): types for a newer Node would accept APIs
+      # that don't exist at runtime. Bump both together, by hand, when upgrading Node.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
