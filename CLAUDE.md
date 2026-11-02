@@ -26,11 +26,11 @@ Run from the repo root:
 
 Tooling notes: Worker tests run inside the Workers runtime via `@cloudflare/vitest-plugin` (not the deprecated `vitest-pool-workers`). TypeScript is pinned to 6.0 until `typescript-eslint` supports 7. Packages with install scripts must be allow-listed under `allowBuilds` in `pnpm-workspace.yaml`.
 
-## Codebase notes (learned in M1–M4 and the M4 image incident)
+## Codebase notes (learned in M1–M4.5 and the M4 image incident)
 
 The README has the repository layout. Things that aren't obvious from reading the code:
 
-- **Reader structure:** `App` (startup, open screen, saving) → `ReaderScreen` (chrome, panels, keys, progress saver) → `ReaderView` (the only code that touches foliate). `ReaderView`'s open effect depends only on `[file, call]`; callbacks are read via `useEffectEvent`, so parent re-renders never reopen the book.
+- **Reader structure:** `App` (startup, start screen, saving) → `ReaderScreen` (chrome, panels, keys, progress saver; `useChrome` hides the chrome) → `ReaderView` (the only code that touches foliate). `ReaderView`'s open effect depends only on `[file, call]`; callbacks are read via `useEffectEvent`, so parent re-renders never reopen the book.
 - **All navigation goes through `ReaderView`'s queue,** including in-book links (foliate's `link` event is cancelled and re-queued). foliate's paginator silently drops `next`/`prev`/`goTo` while a page turn is settling (`#locked`), and the queue only starts once the book is positioned.
 - **Two foliate renderers:** reflowable books use the paginator (`setStyles`, `flow`); fixed-layout books (`view.isFixedLayout`) use `foliate-fxl`, which has neither. Anything that styles or lays out the book must handle both (#18).
 - **Book CSS** lives in `reader/appearance.ts` (`bookCss`): font size on the root, forced theme colours on `body *`, and `body { position: static }` (RD-29). foliate's own resets are in `vendor/foliate-js/paginator.js` (`columnize`/`scrolled`).
@@ -66,6 +66,16 @@ The README has the repository layout. Things that aren't obvious from reading th
 - **Reading production logs:** only the owner can, at dash.cloudflare.com → Workers & Pages → litsnap-worker → Observability. Our line is the row without a level; ask for its `images.reason` (IMG-16 names the request and Wikimedia's server and `Retry-After`). Cloudflare's invocation logs are off (they held IPs and locations). Our lines still carry the term, which is disclosed (spec §7).
 - **Secrets:** set in the Cloudflare dashboard as type **Secret**. `wrangler deploy` from CI replaces plain variables but keeps secrets. Declare their types in `src/secrets.d.ts`, because `wrangler types` only knows `wrangler.jsonc`. Tests get a stand-in through `miniflare.bindings` in `vitest.config.ts`.
 - **Issue references in commits:** GitHub closes an issue when a merged commit says e.g. `fix: … #17`. If the issue must stay open, keep its number out of `fix:` commit messages and write "Part of #N" only in the PR body.
+
+- **Colours live in `src/theme.ts`** (M4.5). `styles.css` and `terms.css` repeat them as custom properties, because CSS can't import TypeScript, and `theme.test.ts` fails if they drift (VIS-1) and checks contrast (VIS-2). A new colour goes in all three. `#777777` (`--mark`) never carries text.
+- **The Terms page is a Vite build entry** (`apps/web/terms.html`, with `src/terms.css`), not a `public/` file, so it gets our hashed Jost. It must never gain a script (TERMS-3); without one, it follows the OS theme, not the saved one.
+- **Retrying Playwright assertions outlast timers.** `expect(...).toHaveAttribute` retries for 5 s, longer than the chrome's 3 s countdown, so "stays hidden" passed even when the chrome wrongly showed and hid again (three mutations survived in #54). For "nothing changed", pause and read once (`stillHidden` in `reader-chrome.spec.ts`); give "changes at once" a short timeout.
+- **Keyboard focus vs pointer focus:** `:focus-visible` doesn't work across the book's iframe. A `Tab` pressed inside the iframe that lands on our page doesn't count as keyboard focus, and a mouse click on a button focuses it too. `useChrome` remembers whether the last input was a key or a pointer, including keys the iframe forwards.
+- **foliate draws margins outside the book's iframe** (about 48 px top and bottom inside `<foliate-view>`). Clicks there reach our page, not the book: `ReaderView` listens on its container for them.
+- **Closing a book before its first page loads** makes foliate's paginator throw from `destroy()` (its view doesn't exist yet). `ReaderView`'s cleanup catches it, because a throw there unmounts the whole app; Home made it easy to hit (#51). The vendored files stay byte-identical to upstream.
+- **Storage writes that can fail never gate opening a book:** when storage is full every IndexedDB write fails (RD-6), so flags like `leftAtStart` are written without `await`, with a `catch`.
+- **Touch in Playwright:** two `touchscreen.tap`s in quick succession are a double tap (`detail: 2`). Wait about 800 ms between taps that should each count.
+- **Under load, local e2e runs flake** (a full run at 8 min instead of 2, with storage polls and timing tests failing). Rerun the failed specs on their own before suspecting the change, and say so in the PR.
 
 ## How we work
 
