@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@litsnap/shared": "workspace:*",
-    "hono": "^4.13.14"
+    "hono": "^4.13.16"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.11",
